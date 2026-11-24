@@ -21,6 +21,8 @@ namespace Native {
     public static class Win32Base {
         [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
         [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+        [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+        [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     }
 }
 '@
@@ -29,6 +31,8 @@ namespace Native {
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
 
 # ---------- каталог приложения ----------
 $appDir = $PSScriptRoot
@@ -321,6 +325,84 @@ $script:state = 'off'
 $script:animPhase = 0
 $script:stoppedServices = @()
 
+# ---------- настройки (реестр) ----------
+$prefKey = 'HKCU:\Software\Pconnect'
+function Get-Pref([string]$name) {
+    return (Get-ItemProperty -Path $prefKey -Name $name -ErrorAction SilentlyContinue).$name
+}
+function Set-Pref([string]$name, [bool]$value) {
+    if (-not (Test-Path $prefKey)) { New-Item -Path $prefKey -Force | Out-Null }
+    Set-ItemProperty -Path $prefKey -Name $name -Value ([int]$value) -Type DWord
+}
+$runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+$runValueName = 'Pconnect'
+function Set-Autostart([bool]$enable) {
+    if ($enable) {
+        $exe = Join-Path $appDir 'Pconnect.exe'
+        if (Test-Path $exe) { Set-ItemProperty -Path $runKey -Name $runValueName -Value ('"' + $exe + '"') }
+        else { Set-ItemProperty -Path $runKey -Name $runValueName -Value ('powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $appDir 'Pconnect.ps1') + '"') }
+    } else {
+        Remove-ItemProperty -Path $runKey -Name $runValueName -ErrorAction SilentlyContinue
+    }
+}
+function Get-Autostart {
+    return [bool](Get-ItemProperty -Path $runKey -Name $runValueName -ErrorAction SilentlyContinue)
+}
+
+# ---------- трей ----------
+function New-TrayIcon([string]$hex) {
+    $bmp = New-Object System.Drawing.Bitmap(32, 32)
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $g.SmoothingMode = 'AntiAlias'
+    $brush = New-Object System.Drawing.SolidBrush(([System.Drawing.ColorTranslator]::FromHtml($hex)))
+    $g.FillEllipse($brush, 2, 2, 28, 28)
+    $font = New-Object System.Drawing.Font('Segoe UI', 16, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+    $sf = New-Object System.Drawing.StringFormat
+    $sf.Alignment = 'Center'; $sf.LineAlignment = 'Center'
+    $g.DrawString('P', $font, [System.Drawing.Brushes]::White, (New-Object System.Drawing.RectangleF(0, 0, 32, 32)), $sf)
+    $g.Dispose()
+    $hIcon = $bmp.GetHicon()
+    $icon = [System.Drawing.Icon]::FromHandle($hIcon).Clone()
+    $bmp.Dispose()
+    return $icon
+}
+$script:iconGreen = New-TrayIcon '#16A34A'
+$script:iconGray  = New-TrayIcon '#9CA3AF'
+
+$script:notify = New-Object System.Windows.Forms.NotifyIcon
+$script:notify.Icon = $script:iconGray
+$script:notify.Text = 'Pconnect — не подключено'
+$script:notify.Visible = $true
+
+$trayMenu = New-Object System.Windows.Forms.ContextMenuStrip
+$script:miStatus = New-Object System.Windows.Forms.ToolStripMenuItem
+$script:miStatus.Text = 'Не подключено'
+$script:miStatus.Enabled = $false
+$script:miToggle = New-Object System.Windows.Forms.ToolStripMenuItem
+$script:miToggle.Text = 'Включить VPN'
+$script:miOpen = New-Object System.Windows.Forms.ToolStripMenuItem
+$script:miOpen.Text = 'Открыть Pconnect'
+$script:miSep1 = New-Object System.Windows.Forms.ToolStripSeparator
+$script:miAutoStart = New-Object System.Windows.Forms.ToolStripMenuItem
+$script:miAutoStart.Text = 'Запускать при входе в систему'
+$script:miAutoStart.Checked = (Get-Autostart)
+$script:miAutoConnect = New-Object System.Windows.Forms.ToolStripMenuItem
+$script:miAutoConnect.Text = 'Подключаться автоматически'
+$script:miAutoConnect.Checked = [bool](Get-Pref 'AutoConnect')
+$script:miSep2 = New-Object System.Windows.Forms.ToolStripSeparator
+$script:miExit = New-Object System.Windows.Forms.ToolStripMenuItem
+$script:miExit.Text = 'Выход'
+
+$trayMenu.Items.AddRange(@($script:miStatus, $script:miToggle, $script:miOpen, $script:miSep1, $script:miAutoStart, $script:miAutoConnect, $script:miSep2, $script:miExit))
+$script:notify.ContextMenuStrip = $trayMenu
+
+$script:miToggle.Add_Click({ if (Test-TunnelUp) { Stop-VpnAction } else { Start-VpnAction } })
+$script:miOpen.Add_Click({ $window.Show(); if ($window.WindowState -eq 'Minimized') { $window.WindowState = 'Normal' }; $window.Activate() })
+$script:miAutoStart.Add_Click({ Set-Autostart $script:miAutoStart.Checked; Set-Pref 'AutoStart' $script:miAutoStart.Checked })
+$script:miAutoConnect.Add_Click({ Set-Pref 'AutoConnect' $script:miAutoConnect.Checked })
+$script:miExit.Add_Click({ $script:notify.Visible = $false; $script:notify.Dispose(); $window.Close() })
+$script:notify.Add_DoubleClick({ $window.Show(); if ($window.WindowState -eq 'Minimized') { $window.WindowState = 'Normal' }; $window.Activate() })
+
 function Wpf-DoEvents {
     try { [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Background, [Action]{}) } catch { }
 }
@@ -357,7 +439,8 @@ function Set-Profile([string]$name) {
 }
 
 function Update-Status {
-    if ($script:profile -and (Test-TunnelUp)) {
+    $on = ($script:profile -and (Test-TunnelUp))
+    if ($on) {
         $script:state = 'on'
         $StatusText.Text = 'Подключено'
         $StatusText.Foreground = $bGreen
@@ -371,6 +454,13 @@ function Update-Status {
         $PowerBtn.Background = $bGreen
     }
     $Prog.Visibility = 'Collapsed'
+    # трей
+    if ($script:notify) {
+        $script:notify.Icon = if ($on) { $script:iconGreen } else { $script:iconGray }
+        $script:notify.Text = if ($on) { 'Pconnect — подключено' } else { 'Pconnect — не подключено' }
+        $script:miStatus.Text = if ($on) { 'Подключено' } else { 'Не подключено' }
+        $script:miToggle.Text = if ($on) { 'Выключить VPN' } else { 'Включить VPN' }
+    }
     Wpf-DoEvents
 }
 
@@ -532,6 +622,11 @@ function Start-VpnAction {
     Update-IPLabel
     Update-Status
     Play-Sound 'connect'
+    if ($script:notify) {
+        $script:notify.BalloonTipTitle = 'Pconnect'
+        $script:notify.BalloonTipText = 'VPN подключён — ' + ($IpText.Text -replace 'Ваш IP: ', '')
+        $script:notify.ShowBalloonTip(3000)
+    }
     Write-Log 'Готово.'
 }
 
@@ -558,6 +653,11 @@ function Stop-VpnAction {
     $IpText.Text = 'Ваш IP: —'
     Update-Status
     Play-Sound 'disconnect'
+    if ($script:notify) {
+        $script:notify.BalloonTipTitle = 'Pconnect'
+        $script:notify.BalloonTipText = 'VPN выключен'
+        $script:notify.ShowBalloonTip(3000)
+    }
     Write-Log 'Готово.'
 }
 
@@ -596,8 +696,18 @@ $IpBtn.Add_Click({
     Write-Log "Текущий IP: $($IpText.Text)"
 })
 
-$MinBtn.Add_Click({ $window.WindowState = 'Minimized' })
-$CloseBtn.Add_Click({ $window.Close() })
+$script:hideHintShown = $false
+function Hide-ToTray {
+    $window.Hide()
+    if (-not $script:hideHintShown -and $script:notify) {
+        $script:hideHintShown = $true
+        $script:notify.BalloonTipTitle = 'Pconnect'
+        $script:notify.BalloonTipText = 'Pconnect работает в трее. Правый клик по значку — меню.'
+        $script:notify.ShowBalloonTip(4000)
+    }
+}
+$MinBtn.Add_Click({ Hide-ToTray })
+$CloseBtn.Add_Click({ Hide-ToTray })
 $HeaderPanel.Add_MouseLeftButtonDown({ try { $window.DragMove() } catch { } })
 
 $window.Add_Loaded({
@@ -615,6 +725,30 @@ $window.Add_Loaded({
     $anim.Start()
     Write-Log 'Pconnect готов.'
     Write-Log 'Настройки: config.json рядом с программой.'
+
+    # глобальная горячая клавиша Ctrl+Shift+V
+    try {
+        $helper = New-Object System.Windows.Interop.WindowInteropHelper($window)
+        $hwnd = $helper.Handle
+        [Native.Win32Base]::RegisterHotKey($hwnd, 1, 0x0006, 0x56) | Out-Null
+        $src = [System.Windows.Interop.HwndSource]::FromHwnd($hwnd)
+        $src.AddHook({
+            param($hwnd, $msg, $wParam, $lParam)
+            if ($msg -eq 0x0312 -and $wParam.ToInt32() -eq 1) {
+                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvoke([Action]{
+                    if (Test-TunnelUp) { Stop-VpnAction } else { Start-VpnAction }
+                })
+            }
+            return [IntPtr]::Zero
+        })
+        Write-Log 'Горячая клавиша Ctrl+Shift+V включена.'
+    } catch { Write-Log 'Не удалось зарегистрировать горячую клавишу.' }
+
+    # автоподключение
+    if ([bool](Get-Pref 'AutoConnect')) {
+        Write-Log 'Автоподключение включено.'
+        [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvoke([Action]{ Start-VpnAction })
+    }
 })
 
 # ---------- экран загрузки (splash) ----------
