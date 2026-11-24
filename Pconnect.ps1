@@ -121,6 +121,45 @@ $bViolet = New-Brush '#6D5CF7'
 $bVioletL= New-Brush '#B4A6FF'
 $bDark   = New-Brush '#1B2430'
 
+# ---------- всплывающее уведомление (само закрывается) ----------
+function Show-Toast([string]$title, [string]$message, [string]$dotHex = '#16A34A') {
+    try {
+        $toastXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="330" SizeToContent="Height" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="Manual" Topmost="True" ShowInTaskbar="False" ShowActivated="False" ResizeMode="NoResize">
+  <Border CornerRadius="14" Margin="6" Background="#F2FFFFFF">
+    <Border.Effect>
+      <DropShadowEffect BlurRadius="16" ShadowDepth="1" Opacity="0.18" Color="#000000"/>
+    </Border.Effect>
+    <StackPanel Margin="16,12,16,12" Orientation="Horizontal">
+      <Ellipse x:Name="Dot" Width="10" Height="10" VerticalAlignment="Center" Fill="#16A34A"/>
+      <StackPanel Margin="12,0,0,0">
+        <TextBlock x:Name="TTitle" Text="Pconnect" FontSize="11" FontWeight="Bold" Foreground="#1B2430"/>
+        <TextBlock x:Name="TMsg" Text="..." FontSize="11" Foreground="#4B5563" TextWrapping="Wrap" MaxWidth="250"/>
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>
+'@
+        $toast = [System.Windows.Markup.XamlReader]::Parse($toastXaml)
+        $toast.FindName('TTitle').Text = $title
+        $toast.FindName('TMsg').Text = $message
+        $toast.FindName('Dot').Fill = New-Brush $dotHex
+        $toast.Add_Loaded({
+            $wa = [System.Windows.SystemParameters]::WorkArea
+            $toast.Left = $wa.Right - $toast.ActualWidth - 12
+            $toast.Top = $wa.Bottom - $toast.ActualHeight - 12
+        })
+        $toast.Show()
+        $t = New-Object System.Windows.Threading.DispatcherTimer
+        $t.Interval = [TimeSpan]::FromSeconds(3)
+        $t.Add_Tick({ $t.Stop(); $toast.Close() })
+        $t.Start()
+    } catch { }
+}
+
 # ---------- XAML ----------
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -622,11 +661,7 @@ function Start-VpnAction {
     Update-IPLabel
     Update-Status
     Play-Sound 'connect'
-    if ($script:notify) {
-        $script:notify.BalloonTipTitle = 'Pconnect'
-        $script:notify.BalloonTipText = 'VPN подключён — ' + ($IpText.Text -replace 'Ваш IP: ', '')
-        $script:notify.ShowBalloonTip(3000)
-    }
+    Show-Toast 'Pconnect' ('VPN подключён — ' + ($IpText.Text -replace 'Ваш IP: ', '')) '#16A34A'
     Write-Log 'Готово.'
 }
 
@@ -653,11 +688,7 @@ function Stop-VpnAction {
     $IpText.Text = 'Ваш IP: —'
     Update-Status
     Play-Sound 'disconnect'
-    if ($script:notify) {
-        $script:notify.BalloonTipTitle = 'Pconnect'
-        $script:notify.BalloonTipText = 'VPN выключен'
-        $script:notify.ShowBalloonTip(3000)
-    }
+    Show-Toast 'Pconnect' 'VPN выключен' '#9CA3AF'
     Write-Log 'Готово.'
 }
 
@@ -699,11 +730,9 @@ $IpBtn.Add_Click({
 $script:hideHintShown = $false
 function Hide-ToTray {
     $window.Hide()
-    if (-not $script:hideHintShown -and $script:notify) {
+    if (-not $script:hideHintShown) {
         $script:hideHintShown = $true
-        $script:notify.BalloonTipTitle = 'Pconnect'
-        $script:notify.BalloonTipText = 'Pconnect работает в трее. Правый клик по значку — меню.'
-        $script:notify.ShowBalloonTip(4000)
+        Show-Toast 'Pconnect' 'Pconnect работает в трее. Правый клик по значку — меню.' '#6D5CF7'
     }
 }
 $MinBtn.Add_Click({ Hide-ToTray })
