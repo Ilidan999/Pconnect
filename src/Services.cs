@@ -32,6 +32,8 @@ static class Lang
         ["minimize"] = ("Свернуть", "Minimize"),
         ["close"] = ("Закрыть", "Close"),
         ["log_toggle"] = ("Журнал", "Log"),
+        ["connecting"] = ("Подключение…", "Connecting…"),
+        ["disconnecting"] = ("Отключение…", "Disconnecting…"),
     };
 
     public static bool English => Prefs.Get("Lang");

@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace Pconnect;
@@ -25,11 +26,11 @@ public partial class MainWindow : Window
     System.Windows.Forms.NotifyIcon tray;
     System.Windows.Forms.ToolStripMenuItem miStatus, miToggle, miOpen, miLang, miExit;
     System.Drawing.Icon iconGreen, iconGray;
-    DispatcherTimer anim, guard, ticker;
+    DispatcherTimer guard, ticker;
     bool stateOn = false;
     bool logExpanded = false;
     DateTime? connectedAt = null;
-    int phase = 0;
+    string lastStatus = "";
 
     static readonly string[] DefaultKeywords = {
         "zapret","winws","goodbyedpi","spoofdpi","byedpi","nfqws","tpws",
@@ -37,11 +38,10 @@ public partial class MainWindow : Window
     };
 
     static readonly SolidColorBrush Green = MakeBrush("#16A34A");
-    static readonly SolidColorBrush GreenLight = MakeBrush("#5EE08A");
     static readonly SolidColorBrush Red = MakeBrush("#DC2626");
     static readonly SolidColorBrush Gray = MakeBrush("#9CA3AF");
-    static readonly SolidColorBrush GrayLight = MakeBrush("#D7DBE2");
     static readonly SolidColorBrush Dark = MakeBrush("#1B2430");
+    static readonly SolidColorBrush Violet = MakeBrush("#6D5CF7");
 
     static SolidColorBrush MakeBrush(string hex) =>
         new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
@@ -244,14 +244,17 @@ public partial class MainWindow : Window
 
     void SetupAnim()
     {
-        anim = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(320) };
-        anim.Tick += (s, e) =>
+        // пульс точки — «дыхание»
+        var scale = new ScaleTransform(1, 1);
+        Dot.RenderTransformOrigin = new Point(0.5, 0.5);
+        Dot.RenderTransform = scale;
+        var pulse = new DoubleAnimation(1.0, 1.55, TimeSpan.FromMilliseconds(650))
         {
-            phase++;
-            if (stateOn) Dot.Fill = (phase % 2 == 0) ? GreenLight : Green;
-            else Dot.Fill = (phase % 2 == 0) ? GrayLight : Gray;
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever
         };
-        anim.Start();
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
 
         ticker = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         ticker.Tick += (s, e) => UpdateTimer();
@@ -309,6 +312,48 @@ public partial class MainWindow : Window
 
     // ---------- утилиты ----------
     void DoEvents() => Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+
+    void FadeIn(FrameworkElement el)
+    {
+        el.Opacity = 0;
+        el.BeginAnimation(UIElement.OpacityProperty,
+            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(380)));
+    }
+
+    StackPanel BuildSpinnerContent(string text)
+    {
+        var spinner = new System.Windows.Shapes.Path
+        {
+            Stroke = Brushes.White,
+            StrokeThickness = 2.5,
+            Width = 16,
+            Height = 16,
+            Data = Geometry.Parse("M 8,1 A 7,7 0 1 1 1,8")
+        };
+        spinner.RenderTransformOrigin = new Point(0.5, 0.5);
+        var rotate = new RotateTransform(0);
+        spinner.RenderTransform = rotate;
+        rotate.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(0, 360, TimeSpan.FromSeconds(0.8)) { RepeatBehavior = RepeatBehavior.Forever });
+
+        var stack = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        stack.Children.Add(spinner);
+        stack.Children.Add(new TextBlock
+        {
+            Text = text,
+            Foreground = Brushes.White,
+            FontWeight = FontWeights.Bold,
+            FontSize = 15,
+            Margin = new Thickness(9, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        return stack;
+    }
 
     void Log(string msg)
     {
@@ -414,8 +459,10 @@ public partial class MainWindow : Window
                 }
                 catch { CountryText.Text = ""; }
             }
+            FadeIn(CountryText);
+            FadeIn(IpText);
         }
-        catch { IpText.Text = Lang.T("your_ip") + ": —"; CountryText.Text = ""; }
+        catch { IpText.Text = Lang.T("your_ip") + ": —"; CountryText.Text = ""; FadeIn(IpText); }
     }
 
     static string Flag(string code)
@@ -444,28 +491,38 @@ public partial class MainWindow : Window
     }
 
     // ---------- статус ----------
-    void SetWorking(bool working)
+    void SetWorking(bool working, string text = null)
     {
         Prog.Visibility = working ? Visibility.Visible : Visibility.Collapsed;
+        if (working && text != null)
+        {
+            PowerBtn.Content = BuildSpinnerContent(text);
+            PowerBtn.Background = Violet;
+        }
     }
 
     void UpdateStatus()
     {
         bool on = TunnelUp();
         stateOn = on;
+        string status = on ? Lang.T("connected") : Lang.T("disconnected");
+        StatusText.Text = status;
         if (on)
         {
-            StatusText.Text = Lang.T("connected");
             StatusText.Foreground = Green;
             PowerBtn.Content = Lang.T("disconnect");
             PowerBtn.Background = Red;
         }
         else
         {
-            StatusText.Text = Lang.T("disconnected");
             StatusText.Foreground = Dark;
             PowerBtn.Content = Lang.T("connect");
             PowerBtn.Background = Green;
+        }
+        if (status != lastStatus)
+        {
+            lastStatus = status;
+            FadeIn(StatusText);
         }
         Prog.Visibility = Visibility.Collapsed;
         if (tray != null)
@@ -483,7 +540,7 @@ public partial class MainWindow : Window
     {
         if (current == null) return;
         Log("================ ЗАПУСК VPN ================");
-        SetWorking(true);
+        SetWorking(true, Lang.T("connecting"));
         StopInterfering();
         Log("Команда подключения: " + current.connect);
         RunAction(current.connect);
@@ -525,7 +582,7 @@ public partial class MainWindow : Window
         Log("================ ОСТАНОВКА VPN ================");
         if (TunnelUp())
         {
-            SetWorking(true);
+            SetWorking(true, Lang.T("disconnecting"));
             Log("Команда отключения: " + current.disconnect);
             RunAction(current.disconnect);
             for (int i = 0; i < 25; i++)
