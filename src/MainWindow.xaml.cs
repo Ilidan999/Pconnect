@@ -38,14 +38,23 @@ public partial class MainWindow : Window
         "dpi_bypass","dpi-bypass","ciadpi","zaborona","anticenz","greentunnel"
     };
 
-    static readonly SolidColorBrush Green = MakeBrush("#16A34A");
-    static readonly SolidColorBrush Red = MakeBrush("#DC2626");
-    static readonly SolidColorBrush Gray = MakeBrush("#9CA3AF");
-    static readonly SolidColorBrush Dark = MakeBrush("#1B2430");
-    static readonly SolidColorBrush Violet = MakeBrush("#6D5CF7");
+    static readonly SolidColorBrush Green = MakeBrush("#22C55E");
+    static readonly SolidColorBrush Gray = MakeBrush("#6B7280");
+    static readonly SolidColorBrush Light = MakeBrush("#F4F5F9");
+    static readonly Brush GreenBtn = MakeGradient("#26D07C", "#17A34A");
+    static readonly Brush RedBtn = MakeGradient("#FF6B6B", "#E23C3C");
+    static readonly Brush VioletBtn = MakeGradient("#8B7CFF", "#6C5CE7");
 
     static SolidColorBrush MakeBrush(string hex) =>
         new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+
+    static LinearGradientBrush MakeGradient(string top, string bottom)
+    {
+        var g = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+        g.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(top), 0));
+        g.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(bottom), 1));
+        return g;
+    }
 
     [DllImport("user32.dll")]
     static extern bool ReleaseCapture();
@@ -94,7 +103,6 @@ public partial class MainWindow : Window
             catch { }
         }
 
-        ApplyBackdrop();
         SetupTray();
         SetupAnim();
         SetupGuard();
@@ -105,11 +113,6 @@ public partial class MainWindow : Window
 
         if (!string.IsNullOrWhiteSpace(config.updateRepo))
             _ = CheckUpdatesAsync(config.updateRepo);
-    }
-
-    void ApplyBackdrop()
-    {
-        Glass.Apply(this, Surface, Prefs.GetStr("Backdrop", "acrylic"));
     }
 
     void ApplyLogState()
@@ -208,8 +211,8 @@ public partial class MainWindow : Window
     // ---------- трей ----------
     void SetupTray()
     {
-        iconGreen = MakeIcon("#16A34A");
-        iconGray = MakeIcon("#9CA3AF");
+        iconGreen = MakeIcon("#22C55E");
+        iconGray = MakeIcon("#6B7280");
 
         tray = new System.Windows.Forms.NotifyIcon { Icon = iconGray, Text = "Pconnect", Visible = true };
 
@@ -519,7 +522,6 @@ public partial class MainWindow : Window
         config = ConfigStore.Load();
         current = config.profiles.FirstOrDefault(p => p.name == config.defaultProfile)
                ?? config.profiles.FirstOrDefault();
-        ApplyBackdrop();
         UpdateStatus();
     }
 
@@ -530,7 +532,7 @@ public partial class MainWindow : Window
         if (working && text != null)
         {
             PowerBtn.Content = BuildSpinnerContent(text);
-            PowerBtn.Background = Violet;
+            PowerBtn.Background = VioletBtn;
         }
     }
 
@@ -540,17 +542,17 @@ public partial class MainWindow : Window
         stateOn = on;
         string status = on ? Lang.T("connected") : Lang.T("disconnected");
         StatusText.Text = status;
+        Dot.Fill = on ? Green : Gray;
+        StatusText.Foreground = Light;
         if (on)
         {
-            StatusText.Foreground = Green;
             PowerBtn.Content = Lang.T("disconnect");
-            PowerBtn.Background = Red;
+            PowerBtn.Background = RedBtn;
         }
         else
         {
-            StatusText.Foreground = Dark;
             PowerBtn.Content = Lang.T("connect");
-            PowerBtn.Background = Green;
+            PowerBtn.Background = GreenBtn;
         }
         if (status != lastStatus)
         {

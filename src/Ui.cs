@@ -76,14 +76,14 @@ static class Ui
         try
         {
             var dot = new Ellipse { Width = 10, Height = 10, VerticalAlignment = VerticalAlignment.Center, Fill = MakeBrush(dotHex) };
-            var titleTb = new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = MakeBrush("#1B2430") };
-            var msgTb = new TextBlock { Text = message, FontSize = 11, Foreground = MakeBrush("#4B5563"), TextWrapping = TextWrapping.Wrap, MaxWidth = 250 };
+            var titleTb = new TextBlock { Text = title, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = MakeBrush("#F4F5F9") };
+            var msgTb = new TextBlock { Text = message, FontSize = 11, Foreground = MakeBrush("#A5ABC0"), TextWrapping = TextWrapping.Wrap, MaxWidth = 250 };
             var right = new StackPanel { Margin = new Thickness(12, 0, 0, 0) };
             right.Children.Add(titleTb); right.Children.Add(msgTb);
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(16, 12, 16, 12) };
             row.Children.Add(dot); row.Children.Add(right);
-            var border = new Border { CornerRadius = new CornerRadius(14), Margin = new Thickness(6), Background = MakeBrush("#F2FFFFFF"), Child = row };
-            border.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 1, Opacity = 0.18, Color = Colors.Black };
+            var border = new Border { CornerRadius = new CornerRadius(14), Margin = new Thickness(6), Background = MakeBrush("#262A3A"), BorderBrush = MakeBrush("#3A3F54"), BorderThickness = new Thickness(1), Child = row };
+            border.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Opacity = 0.45, Color = Colors.Black };
             var w = new Window
             {
                 Width = 330, SizeToContent = SizeToContent.Height, WindowStyle = WindowStyle.None,

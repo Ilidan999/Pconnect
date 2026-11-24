@@ -32,9 +32,6 @@ public partial class SettingsWindow : Window
         SaveBtn.Click += (s, e) => Save();
         CancelBtn.Click += (s, e) => Close();
         SWClose.Click += (s, e) => Close();
-        RbAcrylic.Checked += (s, e) => ApplyBackdropChoice();
-        RbMica.Checked += (s, e) => ApplyBackdropChoice();
-        RbNone.Checked += (s, e) => ApplyBackdropChoice();
         PreviewMouseLeftButtonDown += OnDrag;
         Loaded += OnLoaded;
     }
@@ -45,22 +42,7 @@ public partial class SettingsWindow : Window
         profiles = config.profiles ?? new List<Profile>();
         FKillSwitch.IsChecked = Prefs.Get("KillSwitch");
 
-        string mode = Prefs.GetStr("Backdrop", "acrylic");
-        RbAcrylic.IsChecked = mode != "mica" && mode != "none";
-        RbMica.IsChecked = mode == "mica";
-        RbNone.IsChecked = mode == "none";
-        Glass.Apply(this, Surface, mode);
-
         RefreshList();
-    }
-
-    void ApplyBackdropChoice()
-    {
-        string mode = RbNone.IsChecked == true ? "none"
-                    : RbMica.IsChecked == true ? "mica"
-                    : "acrylic";
-        Prefs.SetStr("Backdrop", mode);
-        Glass.Apply(this, Surface, mode);
     }
 
     void OnDrag(object sender, MouseButtonEventArgs e)
