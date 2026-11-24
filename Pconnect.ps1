@@ -153,9 +153,14 @@ function Show-Toast([string]$title, [string]$message, [string]$dotHex = '#16A34A
             $toast.Top = $wa.Bottom - $toast.ActualHeight - 12
         })
         $toast.Show()
+        $script:currentToast = $toast
         $t = New-Object System.Windows.Threading.DispatcherTimer
         $t.Interval = [TimeSpan]::FromSeconds(3)
-        $t.Add_Tick({ $t.Stop(); $toast.Close() })
+        $t.Add_Tick({
+            param($sender, $e)
+            try { $sender.Stop() } catch { }
+            try { if ($script:currentToast) { $script:currentToast.Close() }; $script:currentToast = $null } catch { }
+        })
         $t.Start()
     } catch { }
 }
@@ -763,11 +768,13 @@ $window.Add_Loaded({
         $src = [System.Windows.Interop.HwndSource]::FromHwnd($hwnd)
         $src.AddHook({
             param($hwnd, $msg, $wParam, $lParam)
-            if ($msg -eq 0x0312 -and $wParam.ToInt32() -eq 1) {
-                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvoke([Action]{
-                    if (Test-TunnelUp) { Stop-VpnAction } else { Start-VpnAction }
-                })
-            }
+            try {
+                if ($msg -eq 0x0312 -and $wParam -eq [IntPtr]1) {
+                    [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvoke([Action]{
+                        if (Test-TunnelUp) { Stop-VpnAction } else { Start-VpnAction }
+                    }) | Out-Null
+                }
+            } catch { }
             return [IntPtr]::Zero
         })
         Write-Log 'Горячая клавиша Ctrl+Shift+V включена.'
