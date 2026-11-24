@@ -135,7 +135,12 @@
               <Ellipse x:Name="Dot" Width="18" Height="18" VerticalAlignment="Center" Fill="#6B7280"/>
               <TextBlock x:Name="StatusText" Text="Не подключено" FontSize="18" FontWeight="Bold" Foreground="#F4F5F9" Margin="13,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
-            <TextBlock x:Name="CountryText" Text="" FontSize="16" FontWeight="SemiBold" Foreground="#F4F5F9" Margin="0,14,0,0"/>
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+              <Border x:Name="FlagBorder" CornerRadius="3" BorderBrush="#3A3F54" BorderThickness="1" Margin="0,0,10,0" Visibility="Collapsed">
+                <Image x:Name="FlagImg" Width="28" Height="20" Stretch="Uniform"/>
+              </Border>
+              <TextBlock x:Name="CountryText" Text="" FontSize="16" FontWeight="SemiBold" Foreground="#F4F5F9" VerticalAlignment="Center"/>
+            </StackPanel>
             <TextBlock x:Name="IpText" Text="Ваш IP: —" FontSize="13" Foreground="#8B91A5" Margin="0,5,0,0"/>
             <TextBlock x:Name="TimerText" Text="" FontSize="13" Foreground="#8B91A5" Margin="0,5,0,0"/>
             <Button x:Name="PowerBtn" Content="Включить VPN" Style="{StaticResource PillButton}" Height="56" Margin="0,20,0,0" FontSize="16" Background="#22C55E">
@@ -158,7 +163,7 @@
         <GridSplitter x:Name="LogSplitter" Grid.Row="5" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                       ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Background="Transparent" Cursor="SizeNS"/>
 
-        <Border x:Name="LogCard" Grid.Row="6" Margin="16,4,16,0" CornerRadius="14" Background="#1E2029" BorderBrush="#2E3245" BorderThickness="1">
+        <Border x:Name="LogCard" Grid.Row="6" Margin="16,4,16,12" CornerRadius="14" Background="#1E2029" BorderBrush="#2E3245" BorderThickness="1">
           <Grid Margin="14,12,14,12">
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>

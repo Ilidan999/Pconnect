@@ -461,11 +461,12 @@ public partial class MainWindow : Window
             for (int attempt = 0; attempt < 8; attempt++)
             {
                 if (attempt > 0) await Task.Delay(1500);
-                var (ip, countryText) = await FetchIpAsync();
+                var (ip, countryText, countryCode) = await FetchIpAsync();
                 if (ip != null)
                 {
                     IpText.Text = Lang.T("your_ip") + ": " + ip;
                     CountryText.Text = countryText;
+                    LoadFlag(countryCode);
                     FadeIn(CountryText);
                     FadeIn(IpText);
                     Log("Текущий IP: " + ip);
@@ -474,12 +475,13 @@ public partial class MainWindow : Window
             }
             IpText.Text = Lang.T("your_ip") + ": —";
             CountryText.Text = "";
+            LoadFlag("");
             FadeIn(IpText);
         }
         finally { refreshingIp = false; }
     }
 
-    async Task<(string ip, string countryText)> FetchIpAsync()
+    async Task<(string ip, string countryText, string countryCode)> FetchIpAsync()
     {
         try
         {
@@ -494,19 +496,36 @@ public partial class MainWindow : Window
                 city = (string)node?["city"];
             }
             catch { }
-            var ct = string.IsNullOrEmpty(country)
+            var cc = string.IsNullOrEmpty(country) ? "" : country.ToUpper();
+            var ct = string.IsNullOrEmpty(cc)
                 ? ""
-                : Flag(country) + " " + (string.IsNullOrEmpty(city) ? country : city + ", " + country);
-            return (ip, ct);
+                : (string.IsNullOrEmpty(city) ? cc : city + ", " + cc);
+            return (ip, ct, cc);
         }
-        catch { return (null, null); }
+        catch { return (null, null, ""); }
     }
 
-    static string Flag(string code)
+    void LoadFlag(string code)
     {
-        if (string.IsNullOrEmpty(code) || code.Length != 2) return "";
-        return char.ConvertFromUtf32(0x1F1E6 + (char.ToUpper(code[0]) - 'A'))
-             + char.ConvertFromUtf32(0x1F1E6 + (char.ToUpper(code[1]) - 'A'));
+        if (string.IsNullOrEmpty(code))
+        {
+            FlagBorder.Visibility = Visibility.Collapsed;
+            return;
+        }
+        try
+        {
+            var bmp = new System.Windows.Media.Imaging.BitmapImage();
+            bmp.DownloadFailed += (s, e) => FlagBorder.Visibility = Visibility.Collapsed;
+            bmp.BeginInit();
+            bmp.UriSource = new Uri("https://flagcdn.com/w80/" + code.ToLower() + ".png");
+            bmp.EndInit();
+            FlagImg.Source = bmp;
+            FlagBorder.Visibility = Visibility.Visible;
+        }
+        catch
+        {
+            FlagBorder.Visibility = Visibility.Collapsed;
+        }
     }
 
     void OpenClient()
