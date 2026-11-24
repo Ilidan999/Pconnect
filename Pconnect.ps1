@@ -30,8 +30,14 @@ Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 
+# ---------- каталог приложения ----------
+$appDir = $PSScriptRoot
+if (-not $appDir) {
+    try { $appDir = [System.IO.Path]::GetDirectoryName([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) } catch { $appDir = (Get-Location).Path }
+}
+
 # ---------- загрузка конфигурации ----------
-$configPath = Join-Path $PSScriptRoot 'config.json'
+$configPath = Join-Path $appDir 'config.json'
 $config = $null
 if (Test-Path $configPath) {
     try { $config = Get-Content -Raw -Encoding UTF8 $configPath | ConvertFrom-Json } catch { $config = $null }
@@ -43,7 +49,6 @@ $script:profile  = $null
 $defaultKeywords = @('zapret','winws','goodbyedpi','spoofdpi','byedpi','nfqws','tpws','dpi_bypass','dpi-bypass','ciadpi','zaborona','anticenz','greentunnel')
 
 # ---------- пути/ресурсы ----------
-$appDir  = $PSScriptRoot
 $pngPath = Join-Path $appDir 'assets\Pconnect.png'
 $logoUri = if (Test-Path $pngPath) { New-Object System.Uri($pngPath) } else { $null }
 
@@ -657,7 +662,7 @@ if ($logoUri) {
 # показать заставку, затем основное окно
 $splash.Show()
 $splashTimer = New-Object System.Windows.Threading.DispatcherTimer
-$splashTimer.Interval = [TimeSpan]::FromSeconds(2)
+$splashTimer.Interval = [TimeSpan]::FromSeconds(2.5)
 $splashTimer.Add_Tick({
     $splashTimer.Stop()
     $splash.Close()
