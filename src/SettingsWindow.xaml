@@ -22,7 +22,7 @@
                 <Setter TargetName="bd" Property="BorderBrush" Value="#4A4E63"/>
               </Trigger>
               <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                <Setter TargetName="bd" Property="BorderBrush" Value="#7C6CFF"/>
+                <Setter TargetName="bd" Property="BorderBrush" Value="#8B5CF6"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>

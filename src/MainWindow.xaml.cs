@@ -43,7 +43,7 @@ public partial class MainWindow : Window
     static readonly SolidColorBrush Light = MakeBrush("#F4F5F9");
     static readonly Brush GreenBtn = MakeGradient("#26D07C", "#17A34A");
     static readonly Brush RedBtn = MakeGradient("#FF6B6B", "#E23C3C");
-    static readonly Brush VioletBtn = MakeGradient("#8B7CFF", "#6C5CE7");
+    static readonly Brush VioletBtn = MakeGradient("#A78BFA", "#7C3AED");
 
     static SolidColorBrush MakeBrush(string hex) =>
         new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
@@ -123,8 +123,8 @@ public partial class MainWindow : Window
             LogSplitter.Visibility = Visibility.Visible;
             SpacerRow.Height = new GridLength(0.2, GridUnitType.Star);
             LogRow.Height = new GridLength(1, GridUnitType.Star);
-            LogRow.MinHeight = 60;
-            Height = 660;
+            LogRow.MinHeight = 70;
+            Height = 720;
         }
         else
         {
@@ -133,7 +133,7 @@ public partial class MainWindow : Window
             SpacerRow.Height = new GridLength(0);
             LogRow.Height = new GridLength(0);
             LogRow.MinHeight = 0;
-            Height = 460;
+            Height = 520;
         }
         LogBtn.Content = Lang.T("log") + (logExpanded ? "  ▴" : "  ▾");
     }
