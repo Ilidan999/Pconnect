@@ -9,7 +9,8 @@
       "clientPath": "D:\\Happ\\Happ.exe",
       "fixRouting": true,
       "interferingServices": ["zapret"],
-      "interferingProcesses": ["winws", "nfqws", "tpws"]
+      "interferingProcesses": ["winws", "nfqws", "tpws"],
+      "interferingKeywords": []
     }
   ]
 }

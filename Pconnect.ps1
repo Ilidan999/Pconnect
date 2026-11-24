@@ -40,6 +40,7 @@ if (-not $config) { $config = [pscustomobject]@{ defaultProfile = ''; profiles =
 
 $script:profiles = @($config.profiles)
 $script:profile  = $null
+$defaultKeywords = @('zapret','winws','goodbyedpi','spoofdpi','byedpi','nfqws','tpws','dpi_bypass','dpi-bypass','ciadpi','zaborona','anticenz','greentunnel')
 
 # ---------- пути/ресурсы ----------
 $appDir  = $PSScriptRoot
@@ -315,6 +316,7 @@ $HeaderPanel= $window.FindName('HeaderPanel')
 # ---------- состояние ----------
 $script:state = 'off'
 $script:animPhase = 0
+$script:stoppedServices = @()
 
 function Wpf-DoEvents {
     try { [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Background, [Action]{}) } catch { }
@@ -377,42 +379,85 @@ function Set-Working([string]$label) {
     Wpf-DoEvents
 }
 
+function Get-KwPattern {
+    $kw = @(Get-ProfileProp 'interferingKeywords') + $defaultKeywords
+    $kw = @($kw | Where-Object { $_ } | Select-Object -Unique)
+    if ($kw.Count -eq 0) { return $null }
+    return '(?i)' + (($kw | ForEach-Object { [regex]::Escape([string]$_) }) -join '|')
+}
+
+function Get-InterferingServices {
+    $names = @(Get-ProfileProp 'interferingServices')
+    $re = Get-KwPattern
+    if ($re) {
+        $names += @(Get-Service -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match $re -or $_.DisplayName -match $re } |
+            ForEach-Object { $_.Name })
+    }
+    return @($names | Where-Object { $_ } | Select-Object -Unique)
+}
+
+function Get-InterferingProcesses {
+    $names = @(Get-ProfileProp 'interferingProcesses')
+    $re = Get-KwPattern
+    if ($re) {
+        $names += @(Get-Process -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProcessName -match $re } |
+            ForEach-Object { $_.ProcessName } | Select-Object -Unique)
+    }
+    return @($names | Where-Object { $_ } | Select-Object -Unique)
+}
+
+function Get-SvcStartValue([string]$name) {
+    return (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\$name" -ErrorAction SilentlyContinue).Start
+}
+
+function Set-SvcStartValue([string]$name, [int]$v) {
+    switch ($v) {
+        2 { Set-Service -Name $name -StartupType Automatic -ErrorAction SilentlyContinue }
+        3 { Set-Service -Name $name -StartupType Manual -ErrorAction SilentlyContinue }
+        default { Set-Service -Name $name -StartupType Automatic -ErrorAction SilentlyContinue }
+    }
+}
+
 function Stop-Interfering {
-    $svcs = @(Get-ProfileProp 'interferingServices')
-    $procs = @(Get-ProfileProp 'interferingProcesses')
-    if (-not $svcs -and -not $procs) { Write-Log 'В профиле нет «мешающих» программ.'; return }
+    $svcs = Get-InterferingServices
+    $procs = Get-InterferingProcesses
+    if ($svcs.Count -eq 0 -and $procs.Count -eq 0) { Write-Log 'Мешающих программ не найдено.'; return }
     Write-Log 'Отключаю мешающие программы…'
+    $script:stoppedServices = @()
     foreach ($name in $svcs) {
-        if (-not $name) { continue }
         $s = Get-Service -Name $name -ErrorAction SilentlyContinue
-        if (-not $s) { Write-Log "Служба $name не найдена."; continue }
+        if (-not $s) { continue }
+        $orig = Get-SvcStartValue $name
         Write-Log "Служба: $($s.DisplayName) ($($s.Name)) — $($s.Status)"
         try { Stop-Service -Name $name -Force -ErrorAction Stop; Write-Log '   остановлена' }
         catch { Write-Log "   не удалось остановить: $($_.Exception.Message)" }
         try { Set-Service -Name $name -StartupType Disabled -ErrorAction Stop; Write-Log '   автозапуск отключён' }
         catch { Write-Log "   не удалось отключить автозапуск: $($_.Exception.Message)" }
+        $script:stoppedServices += [pscustomobject]@{ Name = $name; OriginalStart = $orig }
     }
     foreach ($name in $procs) {
-        if (-not $name) { continue }
         $p = Get-Process -Name $name -ErrorAction SilentlyContinue
         if ($p) { $p | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Log "Процесс $name завершён" }
     }
 }
 
 function Restore-Interfering {
-    $svcs = @(Get-ProfileProp 'interferingServices')
-    if (-not $svcs) { Write-Log 'Нет служб для восстановления.'; return }
+    if (-not $script:stoppedServices -or $script:stoppedServices.Count -eq 0) {
+        Write-Log 'Нет служб для восстановления.'
+        return
+    }
     Write-Log 'Возвращаю мешающие программы…'
-    foreach ($name in $svcs) {
-        if (-not $name) { continue }
+    foreach ($svc in $script:stoppedServices) {
+        $name = $svc.Name
         $s = Get-Service -Name $name -ErrorAction SilentlyContinue
-        if (-not $s) { continue }
-        Write-Log "Служба: $($s.DisplayName) ($($s.Name))"
-        try { Set-Service -Name $name -StartupType Automatic -ErrorAction Stop; Write-Log '   автозапуск включён' }
-        catch { Write-Log "   не удалось включить автозапуск: $($_.Exception.Message)" }
+        Write-Log "Служба: $($s.DisplayName) ($name)"
+        Set-SvcStartValue $name ([int]$svc.OriginalStart)
         try { Start-Service -Name $name -ErrorAction Stop; Write-Log '   запущена' }
         catch { Write-Log "   не удалось запустить: $($_.Exception.Message)" }
     }
+    $script:stoppedServices = @()
 }
 
 function Get-ExitIP {
