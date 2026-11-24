@@ -54,14 +54,14 @@
         <TextBox x:Name="FProcesses" Height="28" Margin="0,3,0,8" FontSize="12"/>
       </StackPanel>
       <StackPanel Grid.Row="3" Margin="0,6,0,0">
-        <Grid Margin="0,0,0,10">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-          </Grid.ColumnDefinitions>
-          <TextBlock Text="Эффект окна" FontSize="12" Foreground="#1B2430" VerticalAlignment="Center"/>
-          <ComboBox x:Name="BackdropCombo" Grid.Column="1" Height="28" FontSize="12" Margin="12,0,0,0"/>
-        </Grid>
+        <StackPanel Margin="0,0,0,10">
+          <TextBlock Text="Эффект окна" FontSize="12" Foreground="#1B2430"/>
+          <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <RadioButton x:Name="RbAcrylic" Content="Acrylic" GroupName="Backdrop" FontSize="12" Foreground="#1B2430" Margin="0,0,16,0"/>
+            <RadioButton x:Name="RbMica" Content="Mica" GroupName="Backdrop" FontSize="12" Foreground="#1B2430" Margin="0,0,16,0"/>
+            <RadioButton x:Name="RbNone" Content="Без эффекта" GroupName="Backdrop" FontSize="12" Foreground="#1B2430"/>
+          </StackPanel>
+        </StackPanel>
         <CheckBox x:Name="FKillSwitch" Content="Защита от обрыва — авто-переподключение при падении VPN" FontSize="12"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
           <Button x:Name="SaveBtn" Content="Сохранить" Width="120" Height="36" Background="#16A34A" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>

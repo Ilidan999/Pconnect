@@ -35,6 +35,7 @@ static class Glass
     const int WCA_ACCENT_POLICY = 19;
     const int ACCENT_DISABLED = 0;
     const int ACCENT_ENABLE_BLURBEHIND = 3;
+    const int ACCENT_ENABLE_ACRYLICBLURBEHIND = 4;
 
     // mode: "acrylic" | "mica" | "none"
     // surface — корневой Border, которому задаём полупрозрачную/непрозрачную подложку
@@ -52,15 +53,16 @@ static class Glass
             }
             else if (mode == "acrylic")
             {
-                // сильное «стекло»: размытие + более прозрачная подложка
-                SetAccent(hwnd, ACCENT_ENABLE_BLURBEHIND, 0, 0);
-                SetSurface(surface, GlassBrush(0x8C), GlassBrush(0x33));
+                // сильное «стекло»: акрил (размытие + оттенок), если не выйдет — обычное размытие
+                if (!SetAccent(hwnd, ACCENT_ENABLE_ACRYLICBLURBEHIND, 2, 0x40FFFFFF))
+                    SetAccent(hwnd, ACCENT_ENABLE_BLURBEHIND, 0, 0);
+                SetSurface(surface, GlassBrush(0x80), GlassBrush(0x40));
             }
             else // mica
             {
                 // мягкое «стекло»: размытие + более плотная подложка
                 SetAccent(hwnd, ACCENT_ENABLE_BLURBEHIND, 0, 0);
-                SetSurface(surface, GlassBrush(0xB3), GlassBrush(0x33));
+                SetSurface(surface, GlassBrush(0xA6), GlassBrush(0x33));
             }
         }
         catch { }

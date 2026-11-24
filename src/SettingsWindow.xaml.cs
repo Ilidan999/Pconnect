@@ -32,7 +32,9 @@ public partial class SettingsWindow : Window
         SaveBtn.Click += (s, e) => Save();
         CancelBtn.Click += (s, e) => Close();
         SWClose.Click += (s, e) => Close();
-        BackdropCombo.SelectionChanged += (s, e) => ApplyBackdropChoice();
+        RbAcrylic.Checked += (s, e) => ApplyBackdropChoice();
+        RbMica.Checked += (s, e) => ApplyBackdropChoice();
+        RbNone.Checked += (s, e) => ApplyBackdropChoice();
         PreviewMouseLeftButtonDown += OnDrag;
         Loaded += OnLoaded;
     }
@@ -43,26 +45,20 @@ public partial class SettingsWindow : Window
         profiles = config.profiles ?? new List<Profile>();
         FKillSwitch.IsChecked = Prefs.Get("KillSwitch");
 
-        BackdropCombo.ItemsSource = new[] { "Acrylic", "Mica", "Без эффекта" };
-        BackdropCombo.SelectedIndex = Prefs.GetStr("Backdrop", "acrylic") switch
-        {
-            "mica" => 1,
-            "none" => 2,
-            _ => 0,
-        };
-        Glass.Apply(this, Surface, Prefs.GetStr("Backdrop", "acrylic"));
+        string mode = Prefs.GetStr("Backdrop", "acrylic");
+        RbAcrylic.IsChecked = mode != "mica" && mode != "none";
+        RbMica.IsChecked = mode == "mica";
+        RbNone.IsChecked = mode == "none";
+        Glass.Apply(this, Surface, mode);
 
         RefreshList();
     }
 
     void ApplyBackdropChoice()
     {
-        string mode = BackdropCombo.SelectedIndex switch
-        {
-            1 => "mica",
-            2 => "none",
-            _ => "acrylic",
-        };
+        string mode = RbNone.IsChecked == true ? "none"
+                    : RbMica.IsChecked == true ? "mica"
+                    : "acrylic";
         Prefs.SetStr("Backdrop", mode);
         Glass.Apply(this, Surface, mode);
     }
