@@ -252,7 +252,6 @@ $xaml = @'
             <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.10" Color="#000000"/>
           </Border.Effect>
           <StackPanel Margin="22,18,22,18">
-            <ComboBox x:Name="ProfileBox" Height="34" FontSize="12" Padding="10,0" Margin="0,0,0,12" Background="#FFFFFFFF"/>
             <StackPanel Orientation="Horizontal">
               <Ellipse x:Name="Dot" Width="16" Height="16" VerticalAlignment="Center" Fill="#9CA3AF"/>
               <TextBlock x:Name="StatusText" Text="Не подключено" FontSize="16" FontWeight="Bold" Foreground="#1B2430" Margin="12,0,0,0" VerticalAlignment="Center"/>
@@ -305,7 +304,6 @@ if ($logoUri) {
 }
 
 $Logo       = $window.FindName('Logo')
-$ProfileBox = $window.FindName('ProfileBox')
 $Dot        = $window.FindName('Dot')
 $StatusText = $window.FindName('StatusText')
 $IpText     = $window.FindName('IpText')
@@ -602,21 +600,12 @@ $MinBtn.Add_Click({ $window.WindowState = 'Minimized' })
 $CloseBtn.Add_Click({ $window.Close() })
 $HeaderPanel.Add_MouseLeftButtonDown({ try { $window.DragMove() } catch { } })
 
-$ProfileBox.Add_SelectionChanged({
-    if ($ProfileBox.SelectedItem -ne $null) { Set-Profile ([string]$ProfileBox.SelectedItem) }
-})
-
 $window.Add_Loaded({
-    # профили
-    $ProfileBox.ItemsSource = @($script:profiles | ForEach-Object { $_.name })
-    $idx = 0
-    $def = $config.defaultProfile
-    for ($i = 0; $i -lt $script:profiles.Count; $i++) {
-        if ($script:profiles[$i].name -eq $def) { $idx = $i; break }
-    }
     if ($script:profiles.Count -gt 0) {
-        $ProfileBox.SelectedIndex = $idx
-        Set-Profile ($script:profiles[$idx].name)
+        $def = $config.defaultProfile
+        $p = $script:profiles | Where-Object { $_.name -eq $def } | Select-Object -First 1
+        if (-not $p) { $p = $script:profiles[0] }
+        Set-Profile $p.name
     } else {
         Write-Log 'Не найден config.json или в нём нет профилей.'
         Write-Log 'Создайте config.json рядом с программой (см. README).'
