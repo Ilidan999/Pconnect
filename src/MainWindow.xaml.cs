@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -61,7 +62,7 @@ public partial class MainWindow : Window
 
         PowerBtn.Click += (s, e) => { PowerBtn.IsEnabled = false; if (TunnelUp()) Disconnect(); else Connect(); PowerBtn.IsEnabled = true; };
         HappBtn.Click += (s, e) => OpenClient();
-        IpBtn.Click += (s, e) => { UpdateIp(); Log("Текущий IP: " + IpText.Text); };
+        IpBtn.Click += (s, e) => RefreshIp();
         LogBtn.Click += (s, e) => ToggleLog();
         SettingsBtn.Click += (s, e) => OpenSettings();
         MinBtn.Click += (s, e) => Hide();
@@ -438,31 +439,56 @@ public partial class MainWindow : Window
         catch (Exception ex) { Log("Не удалось настроить маршрут: " + ex.Message); }
     }
 
-    void UpdateIp()
+    bool refreshingIp = false;
+
+    async void RefreshIp()
+    {
+        if (refreshingIp) return;
+        refreshingIp = true;
+        try
+        {
+            for (int attempt = 0; attempt < 8; attempt++)
+            {
+                if (attempt > 0) await Task.Delay(1500);
+                var (ip, countryText) = await FetchIpAsync();
+                if (ip != null)
+                {
+                    IpText.Text = Lang.T("your_ip") + ": " + ip;
+                    CountryText.Text = countryText;
+                    FadeIn(CountryText);
+                    FadeIn(IpText);
+                    Log("Текущий IP: " + ip);
+                    return;
+                }
+            }
+            IpText.Text = Lang.T("your_ip") + ": —";
+            CountryText.Text = "";
+            FadeIn(IpText);
+        }
+        finally { refreshingIp = false; }
+    }
+
+    async Task<(string ip, string countryText)> FetchIpAsync()
     {
         try
         {
-            using (var hc = new HttpClient { Timeout = TimeSpan.FromSeconds(10) })
+            using var hc = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            var ip = (await hc.GetStringAsync("https://api.ipify.org")).Trim();
+            string country = null, city = null;
+            try
             {
-                var ip = hc.GetStringAsync("https://api.ipify.org").GetAwaiter().GetResult().Trim();
-                IpText.Text = Lang.T("your_ip") + ": " + ip;
-                try
-                {
-                    var info = hc.GetStringAsync("https://ipinfo.io/" + ip + "/json").GetAwaiter().GetResult();
-                    var node = JsonNode.Parse(info);
-                    var cc = (string)node?["country"];
-                    if (!string.IsNullOrEmpty(cc))
-                    {
-                        var city = (string)node?["city"];
-                        CountryText.Text = Flag(cc) + " " + (string.IsNullOrEmpty(city) ? cc : city + ", " + cc);
-                    }
-                }
-                catch { CountryText.Text = ""; }
+                var info = await hc.GetStringAsync("https://ipinfo.io/" + ip + "/json");
+                var node = JsonNode.Parse(info);
+                country = (string)node?["country"];
+                city = (string)node?["city"];
             }
-            FadeIn(CountryText);
-            FadeIn(IpText);
+            catch { }
+            var ct = string.IsNullOrEmpty(country)
+                ? ""
+                : Flag(country) + " " + (string.IsNullOrEmpty(city) ? country : city + ", " + country);
+            return (ip, ct);
         }
-        catch { IpText.Text = Lang.T("your_ip") + ": —"; CountryText.Text = ""; FadeIn(IpText); }
+        catch { return (null, null); }
     }
 
     static string Flag(string code)
@@ -569,10 +595,10 @@ public partial class MainWindow : Window
         }
 
         UpdateStatus();
-        UpdateIp();
+        RefreshIp();
         connectedAt = DateTime.Now;
         Ui.PlaySound(true);
-        Ui.ShowToast("Pconnect", Lang.T("connected_toast") + " — " + IpText.Text.Replace(Lang.T("your_ip") + ": ", ""), "#16A34A");
+        Ui.ShowToast("Pconnect", Lang.T("connected_toast"), "#16A34A");
         Log("Готово.");
     }
 
