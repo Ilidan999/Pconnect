@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
@@ -24,8 +25,10 @@ public partial class MainWindow : Window
     System.Windows.Forms.NotifyIcon tray;
     System.Windows.Forms.ToolStripMenuItem miStatus, miToggle, miOpen, miLang, miExit;
     System.Drawing.Icon iconGreen, iconGray;
-    DispatcherTimer anim, guard;
+    DispatcherTimer anim, guard, ticker;
     bool stateOn = false;
+    bool logExpanded = false;
+    DateTime? connectedAt = null;
     int phase = 0;
 
     static readonly string[] DefaultKeywords = {
@@ -59,6 +62,7 @@ public partial class MainWindow : Window
         PowerBtn.Click += (s, e) => { PowerBtn.IsEnabled = false; if (TunnelUp()) Disconnect(); else Connect(); PowerBtn.IsEnabled = true; };
         HappBtn.Click += (s, e) => OpenClient();
         IpBtn.Click += (s, e) => { UpdateIp(); Log("Текущий IP: " + IpText.Text); };
+        LogBtn.Click += (s, e) => ToggleLog();
         SettingsBtn.Click += (s, e) => OpenSettings();
         MinBtn.Click += (s, e) => Hide();
         CloseBtn.Click += (s, e) => Hide();
@@ -94,10 +98,40 @@ public partial class MainWindow : Window
         SetupGuard();
         RegisterGlobalHotkey();
         ApplyLang();
+        ApplyLogState();
         UpdateStatus();
 
         if (!string.IsNullOrWhiteSpace(config.updateRepo))
             _ = CheckUpdatesAsync(config.updateRepo);
+    }
+
+    void ApplyLogState()
+    {
+        if (logExpanded)
+        {
+            LogCard.Visibility = Visibility.Visible;
+            LogSplitter.Visibility = Visibility.Visible;
+            SpacerRow.Height = new GridLength(0.2, GridUnitType.Star);
+            LogRow.Height = new GridLength(1, GridUnitType.Star);
+            LogRow.MinHeight = 60;
+            Height = 660;
+        }
+        else
+        {
+            LogCard.Visibility = Visibility.Collapsed;
+            LogSplitter.Visibility = Visibility.Collapsed;
+            SpacerRow.Height = new GridLength(0);
+            LogRow.Height = new GridLength(0);
+            LogRow.MinHeight = 0;
+            Height = 460;
+        }
+        LogBtn.Content = Lang.T("log") + (logExpanded ? "  ▴" : "  ▾");
+    }
+
+    void ToggleLog()
+    {
+        logExpanded = !logExpanded;
+        ApplyLogState();
     }
 
     void ApplyLang()
@@ -107,6 +141,10 @@ public partial class MainWindow : Window
         LogCaption.Text = Lang.T("log");
         HappBtn.Content = Lang.T("open_vpn");
         IpBtn.Content = Lang.T("check_ip");
+        LogBtn.Content = Lang.T("log") + (logExpanded ? "  ▴" : "  ▾");
+        SettingsBtn.ToolTip = Lang.T("settings");
+        MinBtn.ToolTip = Lang.T("minimize");
+        CloseBtn.ToolTip = Lang.T("close");
         if (tray != null)
         {
             miOpen.Text = Lang.T("open_app");
@@ -214,6 +252,23 @@ public partial class MainWindow : Window
             else Dot.Fill = (phase % 2 == 0) ? GrayLight : Gray;
         };
         anim.Start();
+
+        ticker = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        ticker.Tick += (s, e) => UpdateTimer();
+        ticker.Start();
+    }
+
+    void UpdateTimer()
+    {
+        if (connectedAt != null && stateOn)
+        {
+            var ts = DateTime.Now - connectedAt.Value;
+            TimerText.Text = ((int)ts.TotalHours).ToString("D2") + ":" + ts.Minutes.ToString("D2") + ":" + ts.Seconds.ToString("D2");
+        }
+        else if (TimerText.Text.Length > 0)
+        {
+            TimerText.Text = "";
+        }
     }
 
     void SetupGuard()
@@ -346,9 +401,28 @@ public partial class MainWindow : Window
             {
                 var ip = hc.GetStringAsync("https://api.ipify.org").GetAwaiter().GetResult().Trim();
                 IpText.Text = Lang.T("your_ip") + ": " + ip;
+                try
+                {
+                    var info = hc.GetStringAsync("https://ipinfo.io/" + ip + "/json").GetAwaiter().GetResult();
+                    var node = JsonNode.Parse(info);
+                    var cc = (string)node?["country"];
+                    if (!string.IsNullOrEmpty(cc))
+                    {
+                        var city = (string)node?["city"];
+                        CountryText.Text = Flag(cc) + " " + (string.IsNullOrEmpty(city) ? cc : city + ", " + cc);
+                    }
+                }
+                catch { CountryText.Text = ""; }
             }
         }
-        catch { IpText.Text = Lang.T("your_ip") + ": —"; }
+        catch { IpText.Text = Lang.T("your_ip") + ": —"; CountryText.Text = ""; }
+    }
+
+    static string Flag(string code)
+    {
+        if (string.IsNullOrEmpty(code) || code.Length != 2) return "";
+        return char.ConvertFromUtf32(0x1F1E6 + (char.ToUpper(code[0]) - 'A'))
+             + char.ConvertFromUtf32(0x1F1E6 + (char.ToUpper(code[1]) - 'A'));
     }
 
     void OpenClient()
@@ -439,6 +513,7 @@ public partial class MainWindow : Window
 
         UpdateStatus();
         UpdateIp();
+        connectedAt = DateTime.Now;
         Ui.PlaySound(true);
         Ui.ShowToast("Pconnect", Lang.T("connected_toast") + " — " + IpText.Text.Replace(Lang.T("your_ip") + ": ", ""), "#16A34A");
         Log("Готово.");
@@ -465,7 +540,10 @@ public partial class MainWindow : Window
             Log("VPN уже не подключён.");
         }
         RestoreInterfering();
-        IpText.Text = "Ваш IP: —";
+        IpText.Text = Lang.T("your_ip") + ": —";
+        CountryText.Text = "";
+        TimerText.Text = "";
+        connectedAt = null;
         UpdateStatus();
         Ui.PlaySound(false);
         Ui.ShowToast("Pconnect", Lang.T("disconnected_toast"), "#9CA3AF");

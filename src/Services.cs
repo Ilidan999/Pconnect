@@ -29,6 +29,9 @@ static class Lang
         ["tray_on"] = ("Pconnect — подключено", "Pconnect — connected"),
         ["tray_off"] = ("Pconnect — не подключено", "Pconnect — disconnected"),
         ["your_ip"] = ("Ваш IP", "Your IP"),
+        ["minimize"] = ("Свернуть", "Minimize"),
+        ["close"] = ("Закрыть", "Close"),
+        ["log_toggle"] = ("Журнал", "Log"),
     };
 
     public static bool English => Prefs.Get("Lang");
