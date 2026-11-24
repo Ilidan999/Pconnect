@@ -971,8 +971,31 @@ function Hide-ToTray {
 $MinBtn.Add_Click({ Hide-ToTray })
 $CloseBtn.Add_Click({ Hide-ToTray })
 $SettingsBtn.Add_Click({ Show-Settings })
-$HeaderPanel.Add_PreviewMouseLeftButtonDown({
+function Test-HasInteractiveAncestor($el) {
+    $cur = $el
+    $count = 0
+    while ($cur -ne $null -and $count -lt 30) {
+        $t = $cur.GetType().Name
+        if ($t -in @('Button','TextBox','ComboBox','CheckBox','RadioButton','ScrollBar','Slider','ListBox','ListBoxItem','ComboBoxItem','Thumb','RepeatButton','GridSplitter','Expander')) {
+            return $true
+        }
+        $parent = $null
+        if ($cur -is [System.Windows.Media.Visual]) {
+            $parent = [System.Windows.Media.VisualTreeHelper]::GetParent($cur)
+        } elseif ($cur -is [System.Windows.ContentElement]) {
+            $parent = [System.Windows.ContentOperations]::GetParent($cur)
+        }
+        $cur = $parent
+        $count++
+    }
+    return $false
+}
+
+# перетаскивание за любое пустое место окна (кроме кнопок и полей ввода)
+$window.Add_PreviewMouseLeftButtonDown({
+    param($sender, $e)
     try {
+        if (Test-HasInteractiveAncestor $e.OriginalSource) { return }
         $h = (New-Object System.Windows.Interop.WindowInteropHelper($window)).Handle
         [Native.Win32Base]::ReleaseCapture() | Out-Null
         [Native.Win32Base]::SendMessage($h, 0xA1, [IntPtr]2, [IntPtr]::Zero) | Out-Null
