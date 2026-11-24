@@ -23,6 +23,8 @@ namespace Native {
         [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
         [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
         [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        [DllImport("user32.dll")] public static extern bool ReleaseCapture();
+        [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
     }
 }
 '@
@@ -969,7 +971,13 @@ function Hide-ToTray {
 $MinBtn.Add_Click({ Hide-ToTray })
 $CloseBtn.Add_Click({ Hide-ToTray })
 $SettingsBtn.Add_Click({ Show-Settings })
-$HeaderPanel.Add_MouseLeftButtonDown({ try { $window.DragMove() } catch { } })
+$HeaderPanel.Add_PreviewMouseLeftButtonDown({
+    try {
+        $h = (New-Object System.Windows.Interop.WindowInteropHelper($window)).Handle
+        [Native.Win32Base]::ReleaseCapture() | Out-Null
+        [Native.Win32Base]::SendMessage($h, 0xA1, [IntPtr]2, [IntPtr]::Zero) | Out-Null
+    } catch { }
+})
 
 $window.Add_Loaded({
     if ($script:profiles.Count -gt 0) {

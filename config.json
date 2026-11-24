@@ -1,16 +1,24 @@
-{
-  "defaultProfile": "Happ",
-  "profiles": [
-    {
-      "name": "Happ",
-      "connect": "happ://connect",
-      "disconnect": "happ://disconnect",
-      "adapter": "happ-xray",
-      "clientPath": "D:\\Happ\\Happ.exe",
-      "fixRouting": true,
-      "interferingServices": ["zapret"],
-      "interferingProcesses": ["winws", "nfqws", "tpws"],
-      "interferingKeywords": []
-    }
-  ]
+﻿{
+    "defaultProfile":  "Happ",
+    "profiles":  [
+                     {
+                         "name":  "Happ",
+                         "connect":  "happ://connect",
+                         "disconnect":  "happ://disconnect",
+                         "adapter":  "happ-xray",
+                         "clientPath":  "D:\\Happ\\Happ.exe",
+                         "fixRouting":  true,
+                         "interferingServices":  [
+                                                     "zapret"
+                                                 ],
+                         "interferingProcesses":  [
+                                                      "winws",
+                                                      "nfqws",
+                                                      "tpws"
+                                                  ],
+                         "interferingKeywords":  [
+
+                                                 ]
+                     }
+                 ]
 }
