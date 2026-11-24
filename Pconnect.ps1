@@ -332,6 +332,7 @@ $xaml = @'
         </Border>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,16,0">
+          <Button x:Name="SettingsBtn" Content="⚙" Style="{StaticResource WinButton}"/>
           <Button x:Name="MinBtn" Content="—" Style="{StaticResource WinButton}"/>
           <Button x:Name="CloseBtn" Content="✕" Style="{StaticResource CloseButton}" Margin="2,0,0,0"/>
         </StackPanel>
@@ -362,7 +363,112 @@ $HappBtn    = $window.FindName('HappBtn')
 $IpBtn      = $window.FindName('IpBtn')
 $MinBtn     = $window.FindName('MinBtn')
 $CloseBtn   = $window.FindName('CloseBtn')
+$SettingsBtn= $window.FindName('SettingsBtn')
 $HeaderPanel= $window.FindName('HeaderPanel')
+
+# ---------- окно настроек (XAML) ----------
+$settingsXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Настройки" Width="540" Height="660" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterScreen" Topmost="True" ResizeMode="NoResize">
+  <Border CornerRadius="20" Margin="10">
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#F6F7FC" Offset="0"/>
+        <GradientStop Color="#E8EBF5" Offset="1"/>
+      </LinearGradientBrush>
+    </Border.Background>
+    <Border.Effect><DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.20" Color="#000000"/></Border.Effect>
+    <Grid Margin="24,20,24,20">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <Grid Grid.Row="0">
+        <TextBlock Text="Настройки профилей" FontSize="18" FontWeight="Bold" Foreground="#1B2430"/>
+        <Button x:Name="SWClose" Content="✕" Width="30" Height="26" HorizontalAlignment="Right" VerticalAlignment="Top" Background="#00FFFFFF" BorderThickness="0" Foreground="#7B8496" Cursor="Hand"/>
+      </Grid>
+      <StackPanel Grid.Row="1" Margin="0,14,0,0">
+        <TextBlock Text="Профиль" FontSize="11" Foreground="#7B8496"/>
+        <Grid Margin="0,5,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <ComboBox x:Name="ProfileCombo" Height="32" FontSize="12"/>
+          <Button x:Name="AddBtn" Content="＋ Добавить" Grid.Column="1" Height="32" Margin="8,0,0,0" Padding="12,0"/>
+          <Button x:Name="DelBtn" Content="🗑" Grid.Column="2" Width="40" Height="32" Margin="8,0,0,0"/>
+        </Grid>
+      </StackPanel>
+      <StackPanel Grid.Row="2" Margin="0,12,0,0">
+        <TextBlock Text="Название" FontSize="11" Foreground="#7B8496"/>
+        <TextBox x:Name="FName" Height="28" Margin="0,3,0,8" FontSize="12"/>
+        <TextBlock Text="Команда подключения" FontSize="11" Foreground="#7B8496"/>
+        <TextBox x:Name="FConnect" Height="28" Margin="0,3,0,8" FontSize="12"/>
+        <TextBlock Text="Команда отключения" FontSize="11" Foreground="#7B8496"/>
+        <TextBox x:Name="FDisconnect" Height="28" Margin="0,3,0,8" FontSize="12"/>
+        <TextBlock Text="Адаптер (для статуса)" FontSize="11" Foreground="#7B8496"/>
+        <Grid Margin="0,3,0,8">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <TextBox x:Name="FAdapter" Height="28" FontSize="12"/>
+          <Button x:Name="DetectBtn" Content="Подобрать" Grid.Column="1" Height="28" Margin="8,0,0,0" Padding="14,0"/>
+        </Grid>
+        <TextBlock Text="Путь к приложению" FontSize="11" Foreground="#7B8496"/>
+        <TextBox x:Name="FClientPath" Height="28" Margin="0,3,0,8" FontSize="12"/>
+        <CheckBox x:Name="FFixRouting" Content="Исправлять маршрутизацию (IgnoreDefaultRoutes)" FontSize="12" Margin="0,0,0,8"/>
+        <TextBlock Text="Службы для отключения (через запятую)" FontSize="11" Foreground="#7B8496"/>
+        <TextBox x:Name="FServices" Height="28" Margin="0,3,0,8" FontSize="12"/>
+        <TextBlock Text="Процессы для завершения (через запятую)" FontSize="11" Foreground="#7B8496"/>
+        <TextBox x:Name="FProcesses" Height="28" Margin="0,3,0,8" FontSize="12"/>
+      </StackPanel>
+      <StackPanel Grid.Row="3" Margin="0,6,0,0">
+        <CheckBox x:Name="FKillSwitch" Content="Защита от обрыва — авто-переподключение при падении VPN" FontSize="12"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+          <Button x:Name="SaveBtn" Content="Сохранить" Width="120" Height="36" Background="#16A34A" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
+          <Button x:Name="CancelBtn" Content="Закрыть" Width="110" Height="36" Margin="10,0,0,0" Background="#FFFFFFFF" BorderThickness="0" Cursor="Hand"/>
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>
+'@
+
+function Save-Config {
+    try {
+        $obj = [ordered]@{}
+        $obj.defaultProfile = if ($config.defaultProfile) { [string]$config.defaultProfile } else { '' }
+        $obj.profiles = @()
+        foreach ($p in $script:profiles) {
+            $obj.profiles += [ordered]@{
+                name                 = [string]$p.name
+                connect              = [string]$p.connect
+                disconnect           = [string]$p.disconnect
+                adapter              = [string]$p.adapter
+                clientPath           = [string]$p.clientPath
+                fixRouting           = [bool]$p.fixRouting
+                interferingServices  = @($p.interferingServices)
+                interferingProcesses = @($p.interferingProcesses)
+                interferingKeywords  = @($p.interferingKeywords)
+            }
+        }
+        $json = $obj | ConvertTo-Json -Depth 5
+        [System.IO.File]::WriteAllText($configPath, $json, (New-Object System.Text.UTF8Encoding($true)))
+        return $true
+    } catch { return $false }
+}
+
+function Get-CandidateAdapters {
+    return Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object {
+        $_.Virtual -or $_.InterfaceDescription -match '(?i)tun|tap|wireguard|wintun|vpn|happ|utun|openvpn'
+    }
+}
 
 # ---------- состояние ----------
 $script:state = 'off'
@@ -426,6 +532,8 @@ $script:miToggle = New-Object System.Windows.Forms.ToolStripMenuItem
 $script:miToggle.Text = 'Включить VPN'
 $script:miOpen = New-Object System.Windows.Forms.ToolStripMenuItem
 $script:miOpen.Text = 'Открыть Pconnect'
+$script:miSettings = New-Object System.Windows.Forms.ToolStripMenuItem
+$script:miSettings.Text = 'Настройки'
 $script:miSep1 = New-Object System.Windows.Forms.ToolStripSeparator
 $script:miAutoStart = New-Object System.Windows.Forms.ToolStripMenuItem
 $script:miAutoStart.Text = 'Запускать при входе в систему'
@@ -437,11 +545,12 @@ $script:miSep2 = New-Object System.Windows.Forms.ToolStripSeparator
 $script:miExit = New-Object System.Windows.Forms.ToolStripMenuItem
 $script:miExit.Text = 'Выход'
 
-$trayMenu.Items.AddRange(@($script:miStatus, $script:miToggle, $script:miOpen, $script:miSep1, $script:miAutoStart, $script:miAutoConnect, $script:miSep2, $script:miExit))
+$trayMenu.Items.AddRange(@($script:miStatus, $script:miToggle, $script:miOpen, $script:miSettings, $script:miSep1, $script:miAutoStart, $script:miAutoConnect, $script:miSep2, $script:miExit))
 $script:notify.ContextMenuStrip = $trayMenu
 
 $script:miToggle.Add_Click({ if (Test-TunnelUp) { Stop-VpnAction } else { Start-VpnAction } })
 $script:miOpen.Add_Click({ $window.Show(); if ($window.WindowState -eq 'Minimized') { $window.WindowState = 'Normal' }; $window.Activate() })
+$script:miSettings.Add_Click({ $window.Show(); if ($window.WindowState -eq 'Minimized') { $window.WindowState = 'Normal' }; $window.Activate(); Show-Settings })
 $script:miAutoStart.Add_Click({ Set-Autostart $script:miAutoStart.Checked; Set-Pref 'AutoStart' $script:miAutoStart.Checked })
 $script:miAutoConnect.Add_Click({ Set-Pref 'AutoConnect' $script:miAutoConnect.Checked })
 $script:miExit.Add_Click({ $script:notify.Visible = $false; $script:notify.Dispose(); $window.Close() })
@@ -697,6 +806,107 @@ function Stop-VpnAction {
     Write-Log 'Готово.'
 }
 
+function Show-Settings {
+    try {
+        $sw = [System.Windows.Markup.XamlReader]::Parse($settingsXaml)
+        $cb = $sw.FindName('ProfileCombo')
+        $fName = $sw.FindName('FName')
+        $fConnect = $sw.FindName('FConnect')
+        $fDisconnect = $sw.FindName('FDisconnect')
+        $fAdapter = $sw.FindName('FAdapter')
+        $fClientPath = $sw.FindName('FClientPath')
+        $fFixRouting = $sw.FindName('FFixRouting')
+        $fServices = $sw.FindName('FServices')
+        $fProcesses = $sw.FindName('FProcesses')
+        $fKillSwitch = $sw.FindName('FKillSwitch')
+        $addBtn = $sw.FindName('AddBtn')
+        $delBtn = $sw.FindName('DelBtn')
+        $detectBtn = $sw.FindName('DetectBtn')
+        $saveBtn = $sw.FindName('SaveBtn')
+        $cancelBtn = $sw.FindName('CancelBtn')
+        $closeBtn = $sw.FindName('SWClose')
+
+        $script:settingCurrent = $null
+
+        $refreshList = {
+            $cb.ItemsSource = @($script:profiles | ForEach-Object { $_.name })
+            if ($script:profiles.Count -gt 0) { $cb.SelectedIndex = 0 }
+        }
+
+        $loadFields = {
+            $nm = [string]$cb.SelectedItem
+            $script:settingCurrent = $script:profiles | Where-Object { $_.name -eq $nm } | Select-Object -First 1
+            if ($script:settingCurrent) {
+                $fName.Text = [string]$script:settingCurrent.name
+                $fConnect.Text = [string]$script:settingCurrent.connect
+                $fDisconnect.Text = [string]$script:settingCurrent.disconnect
+                $fAdapter.Text = [string]$script:settingCurrent.adapter
+                $fClientPath.Text = [string]$script:settingCurrent.clientPath
+                $fFixRouting.IsChecked = [bool]$script:settingCurrent.fixRouting
+                $fServices.Text = (@($script:settingCurrent.interferingServices) -join ', ')
+                $fProcesses.Text = (@($script:settingCurrent.interferingProcesses) -join ', ')
+            } else {
+                $fName.Text = ''; $fConnect.Text = ''; $fDisconnect.Text = ''; $fAdapter.Text = ''
+                $fClientPath.Text = ''; $fFixRouting.IsChecked = $false; $fServices.Text = ''; $fProcesses.Text = ''
+            }
+        }
+
+        $cb.Add_SelectionChanged({ & $loadFields })
+
+        $detectBtn.Add_Click({
+            $cands = @(Get-CandidateAdapters)
+            if ($cands.Count -eq 0) {
+                Write-Log 'VPN-адаптер не найден. Подключите VPN и повторите.'
+            } else {
+                $up = $cands | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
+                $pick = if ($up) { $up } else { $cands[0] }
+                $fAdapter.Text = [string]$pick.Name
+                Write-Log "Выбран адаптер: $($pick.Name) — $($pick.InterfaceDescription)"
+            }
+        })
+
+        $addBtn.Add_Click({
+            $np = [pscustomobject]@{ name = 'Новый профиль'; connect = ''; disconnect = ''; adapter = ''; clientPath = ''; fixRouting = $false; interferingServices = @(); interferingProcesses = @(); interferingKeywords = @() }
+            $script:profiles += $np
+            & $refreshList
+            $cb.SelectedItem = 'Новый профиль'
+            & $loadFields
+        })
+
+        $delBtn.Add_Click({
+            if (-not $script:settingCurrent) { return }
+            $nm = [string]$script:settingCurrent.name
+            $script:profiles = @($script:profiles | Where-Object { $_.name -ne $nm })
+            $script:settingCurrent = $null
+            & $refreshList
+            & $loadFields
+        })
+
+        $saveBtn.Add_Click({
+            if (-not $script:settingCurrent) { Write-Log 'Нет профиля для сохранения.'; return }
+            $script:settingCurrent.name = $fName.Text
+            $script:settingCurrent.connect = $fConnect.Text
+            $script:settingCurrent.disconnect = $fDisconnect.Text
+            $script:settingCurrent.adapter = $fAdapter.Text
+            $script:settingCurrent.clientPath = $fClientPath.Text
+            $script:settingCurrent.fixRouting = [bool]$fFixRouting.IsChecked
+            $script:settingCurrent.interferingServices = @(($fServices.Text -split ',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            $script:settingCurrent.interferingProcesses = @(($fProcesses.Text -split ',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            Set-Pref 'KillSwitch' ([bool]$fKillSwitch.IsChecked)
+            if (Save-Config) { Write-Log 'Настройки сохранены в config.json.' } else { Write-Log 'Не удалось сохранить настройки.' }
+            & $refreshList
+        })
+
+        $cancelBtn.Add_Click({ $sw.Close() })
+        $closeBtn.Add_Click({ $sw.Close() })
+
+        $fKillSwitch.IsChecked = [bool](Get-Pref 'KillSwitch')
+        & $refreshList
+        & $loadFields
+        [void] $sw.ShowDialog()
+    } catch { Write-Log "Ошибка настроек: $($_.Exception.Message)" }
+}
+
 # ---------- анимация ----------
 $anim = New-Object System.Windows.Threading.DispatcherTimer
 $anim.Interval = [TimeSpan]::FromMilliseconds(320)
@@ -708,6 +918,22 @@ $anim.Add_Tick({
     $Dot.Fill = if (($script:animPhase % 2) -eq 0) { $light } else { $base }
     if ($script:state -eq 'connecting') { $StatusText.Text = 'Подключение' + ('.' * ($script:animPhase % 4)) }
     if ($script:state -eq 'disconnecting') { $StatusText.Text = 'Отключение' + ('.' * ($script:animPhase % 4)) }
+})
+
+# ---------- защита от обрыва (kill switch) ----------
+$guard = New-Object System.Windows.Threading.DispatcherTimer
+$guard.Interval = [TimeSpan]::FromSeconds(2)
+$guard.Add_Tick({
+    try {
+        if ([bool](Get-Pref 'KillSwitch') -and $script:state -eq 'on' -and $script:profile) {
+            if (-not (Test-TunnelUp)) {
+                Write-Log 'Обнаружен обрыв VPN — переподключаю…'
+                $script:state = 'off'
+                Show-Toast 'Pconnect' 'VPN разорван — переподключение…' '#DC2626'
+                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvoke([Action]{ Start-VpnAction }) | Out-Null
+            }
+        }
+    } catch { }
 })
 
 # ---------- обработчики ----------
@@ -742,6 +968,7 @@ function Hide-ToTray {
 }
 $MinBtn.Add_Click({ Hide-ToTray })
 $CloseBtn.Add_Click({ Hide-ToTray })
+$SettingsBtn.Add_Click({ Show-Settings })
 $HeaderPanel.Add_MouseLeftButtonDown({ try { $window.DragMove() } catch { } })
 
 $window.Add_Loaded({
@@ -757,6 +984,7 @@ $window.Add_Loaded({
     }
 
     $anim.Start()
+    $guard.Start()
     Write-Log 'Pconnect готов.'
     Write-Log 'Настройки: config.json рядом с программой.'
 
