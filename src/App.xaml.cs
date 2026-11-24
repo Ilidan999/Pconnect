@@ -16,7 +16,7 @@ public partial class App : Application
         var splash = BuildSplash();
         splash.Show();
         var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
-        t.Tick += (s, ev) => { t.Stop(); splash.Close(); new MainWindow().Show(); };
+        t.Tick += (s, ev) => { t.Stop(); new MainWindow().Show(); splash.Close(); };
         t.Start();
     }
 
