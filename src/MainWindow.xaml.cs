@@ -59,7 +59,7 @@ public partial class MainWindow : Window
         PowerBtn.Click += (s, e) => { PowerBtn.IsEnabled = false; if (TunnelUp()) Disconnect(); else Connect(); PowerBtn.IsEnabled = true; };
         HappBtn.Click += (s, e) => OpenClient();
         IpBtn.Click += (s, e) => { UpdateIp(); Log("Текущий IP: " + IpText.Text); };
-        SettingsBtn.Click += (s, e) => OpenConfigFile();
+        SettingsBtn.Click += (s, e) => OpenSettings();
         MinBtn.Click += (s, e) => Hide();
         CloseBtn.Click += (s, e) => Hide();
         PreviewMouseLeftButtonDown += OnDrag;
@@ -323,12 +323,14 @@ public partial class MainWindow : Window
             Log("Не указан clientPath в профиле.");
     }
 
-    void OpenConfigFile()
+    void OpenSettings()
     {
-        if (File.Exists(ConfigStore.ConfigPath))
-            Process.Start(new ProcessStartInfo("notepad.exe", ConfigStore.ConfigPath) { UseShellExecute = true });
-        else
-            Log("config.json не найден.");
+        var sw = new SettingsWindow { Owner = this };
+        sw.ShowDialog();
+        config = ConfigStore.Load();
+        current = config.profiles.FirstOrDefault(p => p.name == config.defaultProfile)
+               ?? config.profiles.FirstOrDefault();
+        UpdateStatus();
     }
 
     // ---------- статус ----------
