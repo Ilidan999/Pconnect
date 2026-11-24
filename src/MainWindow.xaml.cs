@@ -109,7 +109,7 @@ public partial class MainWindow : Window
 
     void ApplyBackdrop()
     {
-        Glass.Apply(this, Prefs.GetStr("Backdrop", "mica"));
+        Glass.Apply(this, Surface, Prefs.GetStr("Backdrop", "acrylic"));
     }
 
     void ApplyLogState()

@@ -43,14 +43,14 @@ public partial class SettingsWindow : Window
         profiles = config.profiles ?? new List<Profile>();
         FKillSwitch.IsChecked = Prefs.Get("KillSwitch");
 
-        BackdropCombo.ItemsSource = new[] { "Mica", "Acrylic", "Без эффекта" };
-        BackdropCombo.SelectedIndex = Prefs.GetStr("Backdrop", "mica") switch
+        BackdropCombo.ItemsSource = new[] { "Acrylic", "Mica", "Без эффекта" };
+        BackdropCombo.SelectedIndex = Prefs.GetStr("Backdrop", "acrylic") switch
         {
-            "acrylic" => 1,
+            "mica" => 1,
             "none" => 2,
             _ => 0,
         };
-        Glass.Apply(this, Prefs.GetStr("Backdrop", "mica"));
+        Glass.Apply(this, Surface, Prefs.GetStr("Backdrop", "acrylic"));
 
         RefreshList();
     }
@@ -59,12 +59,12 @@ public partial class SettingsWindow : Window
     {
         string mode = BackdropCombo.SelectedIndex switch
         {
-            1 => "acrylic",
+            1 => "mica",
             2 => "none",
-            _ => "mica",
+            _ => "acrylic",
         };
         Prefs.SetStr("Backdrop", mode);
-        Glass.Apply(this, mode);
+        Glass.Apply(this, Surface, mode);
     }
 
     void OnDrag(object sender, MouseButtonEventArgs e)
