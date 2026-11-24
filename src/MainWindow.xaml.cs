@@ -69,7 +69,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        PowerBtn.Click += (s, e) => { PowerBtn.IsEnabled = false; if (TunnelUp()) Disconnect(); else Connect(); PowerBtn.IsEnabled = true; };
+        PowerBtn.Click += (s, e) => { if (TunnelUp()) Disconnect(); else Connect(); };
         HappBtn.Click += (s, e) => OpenClient();
         IpBtn.Click += (s, e) => RefreshIp();
         LogBtn.Click += (s, e) => ToggleLog();
@@ -335,16 +335,18 @@ public partial class MainWindow : Window
         var spinner = new System.Windows.Shapes.Path
         {
             Stroke = Brushes.White,
-            StrokeThickness = 2.5,
-            Width = 16,
-            Height = 16,
-            Data = Geometry.Parse("M 8,1 A 7,7 0 1 1 1,8")
+            StrokeThickness = 3,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            Width = 18,
+            Height = 18,
+            Data = Geometry.Parse("M 9,1.5 A 7.5,7.5 0 1 1 1.5,9")
         };
         spinner.RenderTransformOrigin = new Point(0.5, 0.5);
         var rotate = new RotateTransform(0);
         spinner.RenderTransform = rotate;
         rotate.BeginAnimation(RotateTransform.AngleProperty,
-            new DoubleAnimation(0, 360, TimeSpan.FromSeconds(0.8)) { RepeatBehavior = RepeatBehavior.Forever });
+            new DoubleAnimation(0, 360, TimeSpan.FromSeconds(0.85)) { RepeatBehavior = RepeatBehavior.Forever });
 
         var stack = new StackPanel
         {
@@ -358,8 +360,8 @@ public partial class MainWindow : Window
             Text = text,
             Foreground = Brushes.White,
             FontWeight = FontWeights.Bold,
-            FontSize = 15,
-            Margin = new Thickness(9, 0, 0, 0),
+            FontSize = 16,
+            Margin = new Thickness(10, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center
         });
         return stack;
@@ -571,74 +573,98 @@ public partial class MainWindow : Window
     }
 
     // ---------- подключение ----------
-    void Connect()
+    async void Connect()
     {
         if (current == null) return;
-        Log("================ ЗАПУСК VPN ================");
-        SetWorking(true, Lang.T("connecting"));
-        StopInterfering();
-        Log("Команда подключения: " + current.connect);
-        RunAction(current.connect);
-
-        if (!string.IsNullOrEmpty(current.adapter))
+        PowerBtn.IsEnabled = false;
+        try
         {
-            for (int i = 0; i < 50; i++)
-            {
-                if (TunnelUp()) break;
-                Thread.Sleep(750);
-                DoEvents();
-            }
-            if (!TunnelUp())
-            {
-                Log("Не удалось подключиться — проверьте настройки профиля.");
-                UpdateStatus();
-                return;
-            }
-            Log("Туннель «" + current.adapter + "» поднят.");
-            if (current.fixRouting) FixRouting();
-        }
-        else
-        {
-            Log("В профиле не указан адаптер — статус не отслеживается.");
-            Thread.Sleep(3000);
-        }
+            Log("================ ЗАПУСК VPN ================");
+            SetWorking(true, Lang.T("connecting"));
+            StopInterfering();
+            Log("Команда подключения: " + current.connect);
+            RunAction(current.connect);
 
-        UpdateStatus();
-        RefreshIp();
-        connectedAt = DateTime.Now;
-        Ui.PlaySound(true);
-        Ui.ShowToast("Pconnect", Lang.T("connected_toast"), "#16A34A");
-        Log("Готово.");
+            if (!string.IsNullOrEmpty(current.adapter))
+            {
+                for (int i = 0; i < 50; i++)
+                {
+                    if (TunnelUp()) break;
+                    await Task.Delay(750);
+                }
+                if (!TunnelUp())
+                {
+                    Log("Не удалось подключиться — проверьте настройки профиля.");
+                    UpdateStatus();
+                    return;
+                }
+                Log("Туннель «" + current.adapter + "» поднят.");
+                if (current.fixRouting) FixRouting();
+            }
+            else
+            {
+                Log("В профиле не указан адаптер — статус не отслеживается.");
+                await Task.Delay(3000);
+            }
+
+            UpdateStatus();
+            RefreshIp();
+            connectedAt = DateTime.Now;
+            Ui.PlaySound(true);
+            Ui.ShowToast("Pconnect", Lang.T("connected_toast"), "#22C55E");
+            Log("Готово.");
+        }
+        catch (Exception ex)
+        {
+            Log("Ошибка подключения: " + ex.Message);
+            UpdateStatus();
+        }
+        finally
+        {
+            PowerBtn.IsEnabled = true;
+        }
     }
 
-    void Disconnect()
+    async void Disconnect()
     {
         if (current == null) return;
-        Log("================ ОСТАНОВКА VPN ================");
-        if (TunnelUp())
+        PowerBtn.IsEnabled = false;
+        try
         {
-            SetWorking(true, Lang.T("disconnecting"));
-            Log("Команда отключения: " + current.disconnect);
-            RunAction(current.disconnect);
-            for (int i = 0; i < 25; i++)
+            Log("================ ОСТАНОВКА VPN ================");
+            if (TunnelUp())
             {
-                if (!TunnelUp()) break;
-                Thread.Sleep(500);
-                DoEvents();
+                SetWorking(true, Lang.T("disconnecting"));
+                Log("Команда отключения: " + current.disconnect);
+                RunAction(current.disconnect);
+                for (int i = 0; i < 25; i++)
+                {
+                    if (!TunnelUp()) break;
+                    await Task.Delay(500);
+                }
             }
+            else
+            {
+                Log("VPN уже не подключён.");
+            }
+            RestoreInterfering();
+            IpText.Text = Lang.T("your_ip") + ": —";
+            CountryText.Text = "";
+            TimerText.Text = "";
+            connectedAt = null;
+            UpdateStatus();
+            Ui.PlaySound(false);
+            Ui.ShowToast("Pconnect", Lang.T("disconnected_toast"), "#6B7280");
+            Log("Готово.");
         }
-        else
+        catch (Exception ex)
         {
-            Log("VPN уже не подключён.");
+            Log("Ошибка отключения: " + ex.Message);
+            UpdateStatus();
         }
-        RestoreInterfering();
-        IpText.Text = Lang.T("your_ip") + ": —";
-        CountryText.Text = "";
-        TimerText.Text = "";
-        connectedAt = null;
-        UpdateStatus();
-        Ui.PlaySound(false);
-        Ui.ShowToast("Pconnect", Lang.T("disconnected_toast"), "#9CA3AF");
-        Log("Готово.");
+        finally
+        {
+            PowerBtn.IsEnabled = true;
+        }
     }
 }
