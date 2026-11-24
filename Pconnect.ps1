@@ -623,4 +623,49 @@ $window.Add_Loaded({
     Write-Log 'Настройки: config.json рядом с программой.'
 })
 
-[void] $window.ShowDialog()
+# ---------- экран загрузки (splash) ----------
+$splashXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pconnect" Width="330" Height="230"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterScreen" Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize">
+  <Border CornerRadius="22" Margin="10">
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#F6F7FC" Offset="0"/>
+        <GradientStop Color="#E4E7F4" Offset="1"/>
+      </LinearGradientBrush>
+    </Border.Background>
+    <Border.Effect>
+      <DropShadowEffect BlurRadius="24" ShadowDepth="0" Opacity="0.20" Color="#000000"/>
+    </Border.Effect>
+    <StackPanel VerticalAlignment="Center">
+      <Image x:Name="SplashLogo" Width="66" Height="66" HorizontalAlignment="Center"/>
+      <TextBlock Text="Pconnect" FontSize="20" FontWeight="Bold" Foreground="#1B2430" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+      <TextBlock Text="Welcome" FontSize="15" Foreground="#6D5CF7" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+      <ProgressBar Width="150" Height="4" IsIndeterminate="True" Margin="0,18,0,0" Foreground="#6D5CF7" Background="#E2E5EF"/>
+    </StackPanel>
+  </Border>
+</Window>
+'@
+$splash = [System.Windows.Markup.XamlReader]::Parse($splashXaml)
+if ($logoUri) {
+    try { $splash.FindName('SplashLogo').Source = New-Object System.Windows.Media.Imaging.BitmapImage($logoUri) } catch { }
+}
+
+# показать заставку, затем основное окно
+$splash.Show()
+$splashTimer = New-Object System.Windows.Threading.DispatcherTimer
+$splashTimer.Interval = [TimeSpan]::FromSeconds(2)
+$splashTimer.Add_Tick({
+    $splashTimer.Stop()
+    $splash.Close()
+    $window.Show()
+    $window.Activate()
+})
+$splashTimer.Start()
+
+# цикл сообщений; завершение при закрытии окна
+$window.Add_Closed({ [System.Windows.Threading.Dispatcher]::CurrentDispatcher.InvokeShutdown() })
+[System.Windows.Threading.Dispatcher]::Run()
