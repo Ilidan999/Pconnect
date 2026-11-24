@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,9 +24,14 @@ public partial class MainWindow : Window
     System.Windows.Forms.NotifyIcon tray;
     System.Windows.Forms.ToolStripMenuItem miStatus, miToggle;
     System.Drawing.Icon iconGreen, iconGray;
-    DispatcherTimer anim;
+    DispatcherTimer anim, guard;
     bool stateOn = false;
     int phase = 0;
+
+    static readonly string[] DefaultKeywords = {
+        "zapret","winws","goodbyedpi","spoofdpi","byedpi","nfqws","tpws",
+        "dpi_bypass","dpi-bypass","ciadpi","zaborona","anticenz","greentunnel"
+    };
 
     static readonly SolidColorBrush Green = MakeBrush("#16A34A");
     static readonly SolidColorBrush GreenLight = MakeBrush("#5EE08A");
@@ -41,6 +47,10 @@ public partial class MainWindow : Window
     static extern bool ReleaseCapture();
     [DllImport("user32.dll")]
     static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")]
+    static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+    [DllImport("user32.dll")]
+    static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     public MainWindow()
     {
@@ -81,6 +91,8 @@ public partial class MainWindow : Window
 
         SetupTray();
         SetupAnim();
+        SetupGuard();
+        RegisterGlobalHotkey();
         UpdateStatus();
     }
 
@@ -168,6 +180,42 @@ public partial class MainWindow : Window
         anim.Start();
     }
 
+    void SetupGuard()
+    {
+        guard = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        guard.Tick += (s, e) =>
+        {
+            if (Prefs.Get("KillSwitch") && stateOn && current != null && !TunnelUp())
+            {
+                Log("Обнаружен обрыв VPN — переподключаю…");
+                stateOn = false;
+                Ui.ShowToast("Pconnect", "VPN разорван — переподключение…", "#DC2626");
+                Dispatcher.BeginInvoke(new Action(Connect));
+            }
+        };
+        guard.Start();
+    }
+
+    void RegisterGlobalHotkey()
+    {
+        try
+        {
+            var h = new WindowInteropHelper(this).Handle;
+            RegisterHotKey(h, 1, 0x0006, 0x56); // Ctrl+Shift+V
+            var src = HwndSource.FromHwnd(h);
+            src.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            {
+                if (msg == 0x0312 && wParam.ToInt32() == 1)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => { if (TunnelUp()) Disconnect(); else Connect(); }));
+                }
+                return IntPtr.Zero;
+            });
+            Log("Горячая клавиша Ctrl+Shift+V включена.");
+        }
+        catch { Log("Не удалось зарегистрировать горячую клавишу."); }
+    }
+
     // ---------- утилиты ----------
     void DoEvents() => Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
 
@@ -211,16 +259,25 @@ public partial class MainWindow : Window
 
     void StopInterfering()
     {
-        if (current.interferingServices.Count == 0 && current.interferingProcesses.Count == 0)
-        {
-            Log("Нет мешающих программ.");
-            return;
-        }
         var script = "";
         foreach (var s in current.interferingServices)
             script += "Stop-Service -Name '" + s + "' -Force -ErrorAction SilentlyContinue;Set-Service -Name '" + s + "' -StartupType Disabled -ErrorAction SilentlyContinue;";
         foreach (var p in current.interferingProcesses)
             script += "Stop-Process -Name '" + p + "' -Force -ErrorAction SilentlyContinue;";
+
+        var kw = current.interferingKeywords
+            .Concat(DefaultKeywords)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToList();
+        if (kw.Count > 0)
+        {
+            var re = "(?i)(" + string.Join("|", kw.Select(Regex.Escape)) + ")";
+            script += "Get-Service | Where-Object { $_.Name -match '" + re + "' -or $_.DisplayName -match '" + re + "' } | ForEach-Object { Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue; Set-Service -Name $_.Name -StartupType Disabled -ErrorAction SilentlyContinue };";
+            script += "Get-Process | Where-Object { $_.ProcessName -match '" + re + "' } | Stop-Process -Force -ErrorAction SilentlyContinue;";
+        }
+
+        if (string.IsNullOrEmpty(script)) { Log("Нет мешающих программ."); return; }
         RunPowerShell(script);
         Log("Мешающие программы отключены.");
     }
@@ -344,6 +401,8 @@ public partial class MainWindow : Window
 
         UpdateStatus();
         UpdateIp();
+        Ui.PlaySound(true);
+        Ui.ShowToast("Pconnect", "VPN подключён — " + IpText.Text.Replace("Ваш IP: ", ""), "#16A34A");
         Log("Готово.");
     }
 
@@ -370,6 +429,8 @@ public partial class MainWindow : Window
         RestoreInterfering();
         IpText.Text = "Ваш IP: —";
         UpdateStatus();
+        Ui.PlaySound(false);
+        Ui.ShowToast("Pconnect", "VPN выключен", "#9CA3AF");
         Log("Готово.");
     }
 }
