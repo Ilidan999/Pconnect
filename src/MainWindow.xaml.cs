@@ -94,6 +94,7 @@ public partial class MainWindow : Window
             catch { }
         }
 
+        ApplyBackdrop();
         SetupTray();
         SetupAnim();
         SetupGuard();
@@ -104,6 +105,11 @@ public partial class MainWindow : Window
 
         if (!string.IsNullOrWhiteSpace(config.updateRepo))
             _ = CheckUpdatesAsync(config.updateRepo);
+    }
+
+    void ApplyBackdrop()
+    {
+        Glass.Apply(this, Prefs.GetStr("Backdrop", "mica"));
     }
 
     void ApplyLogState()
@@ -513,6 +519,7 @@ public partial class MainWindow : Window
         config = ConfigStore.Load();
         current = config.profiles.FirstOrDefault(p => p.name == config.defaultProfile)
                ?? config.profiles.FirstOrDefault();
+        ApplyBackdrop();
         UpdateStatus();
     }
 

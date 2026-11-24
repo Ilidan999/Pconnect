@@ -32,6 +32,7 @@ public partial class SettingsWindow : Window
         SaveBtn.Click += (s, e) => Save();
         CancelBtn.Click += (s, e) => Close();
         SWClose.Click += (s, e) => Close();
+        BackdropCombo.SelectionChanged += (s, e) => ApplyBackdropChoice();
         PreviewMouseLeftButtonDown += OnDrag;
         Loaded += OnLoaded;
     }
@@ -41,7 +42,29 @@ public partial class SettingsWindow : Window
         config = ConfigStore.Load();
         profiles = config.profiles ?? new List<Profile>();
         FKillSwitch.IsChecked = Prefs.Get("KillSwitch");
+
+        BackdropCombo.ItemsSource = new[] { "Mica", "Acrylic", "Без эффекта" };
+        BackdropCombo.SelectedIndex = Prefs.GetStr("Backdrop", "mica") switch
+        {
+            "acrylic" => 1,
+            "none" => 2,
+            _ => 0,
+        };
+        Glass.Apply(this, Prefs.GetStr("Backdrop", "mica"));
+
         RefreshList();
+    }
+
+    void ApplyBackdropChoice()
+    {
+        string mode = BackdropCombo.SelectedIndex switch
+        {
+            1 => "acrylic",
+            2 => "none",
+            _ => "mica",
+        };
+        Prefs.SetStr("Backdrop", mode);
+        Glass.Apply(this, mode);
     }
 
     void OnDrag(object sender, MouseButtonEventArgs e)

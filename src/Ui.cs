@@ -14,6 +14,10 @@ static class Prefs
     const string Key = @"HKEY_CURRENT_USER\Software\Pconnect";
     public static bool Get(string name) => (int?)Microsoft.Win32.Registry.GetValue(Key, name, 0) == 1;
     public static void Set(string name, bool value) => Microsoft.Win32.Registry.SetValue(Key, name, value ? 1 : 0);
+    public static string GetStr(string name, string def = "") =>
+        (string)Microsoft.Win32.Registry.GetValue(Key, name, def) ?? def;
+    public static void SetStr(string name, string value) =>
+        Microsoft.Win32.Registry.SetValue(Key, name, value);
 }
 
 static class Ui
