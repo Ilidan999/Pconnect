@@ -22,6 +22,7 @@ public class Profile
 public class AppConfig
 {
     public string defaultProfile { get; set; } = "";
+    public string updateRepo { get; set; } = "";
     public List<Profile> profiles { get; set; } = new();
 }
 

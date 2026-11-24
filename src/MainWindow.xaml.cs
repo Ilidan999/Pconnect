@@ -22,7 +22,7 @@ public partial class MainWindow : Window
     AppConfig config;
     Profile current;
     System.Windows.Forms.NotifyIcon tray;
-    System.Windows.Forms.ToolStripMenuItem miStatus, miToggle;
+    System.Windows.Forms.ToolStripMenuItem miStatus, miToggle, miOpen, miLang, miExit;
     System.Drawing.Icon iconGreen, iconGray;
     DispatcherTimer anim, guard;
     bool stateOn = false;
@@ -93,7 +93,40 @@ public partial class MainWindow : Window
         SetupAnim();
         SetupGuard();
         RegisterGlobalHotkey();
+        ApplyLang();
         UpdateStatus();
+
+        if (!string.IsNullOrWhiteSpace(config.updateRepo))
+            _ = CheckUpdatesAsync(config.updateRepo);
+    }
+
+    void ApplyLang()
+    {
+        SubText.Text = Lang.T("subtitle");
+        HintText.Text = Lang.T("hint");
+        LogCaption.Text = Lang.T("log");
+        HappBtn.Content = Lang.T("open_vpn");
+        IpBtn.Content = Lang.T("check_ip");
+        if (tray != null)
+        {
+            miOpen.Text = Lang.T("open_app");
+            miExit.Text = Lang.T("exit");
+            miLang.Checked = Lang.English;
+        }
+    }
+
+    async System.Threading.Tasks.Task CheckUpdatesAsync(string repo)
+    {
+        var ver = typeof(App).Assembly.GetName().Version.ToString(3);
+        var res = await UpdateChecker.CheckAsync(repo, ver);
+        if (res.version != null)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Log(Lang.T("update_available") + ": " + res.version);
+                Ui.ShowToast("Pconnect", Lang.T("update_available") + ": " + res.version, "#6D5CF7");
+            });
+        }
     }
 
     // ---------- перетаскивание ----------
@@ -135,13 +168,15 @@ public partial class MainWindow : Window
 
         tray = new System.Windows.Forms.NotifyIcon { Icon = iconGray, Text = "Pconnect", Visible = true };
 
-        miStatus = new System.Windows.Forms.ToolStripMenuItem("Не подключено") { Enabled = false };
-        miToggle = new System.Windows.Forms.ToolStripMenuItem("Включить VPN");
-        var miOpen = new System.Windows.Forms.ToolStripMenuItem("Открыть Pconnect");
-        var miExit = new System.Windows.Forms.ToolStripMenuItem("Выход");
+        miStatus = new System.Windows.Forms.ToolStripMenuItem(Lang.T("disconnected")) { Enabled = false };
+        miToggle = new System.Windows.Forms.ToolStripMenuItem(Lang.T("connect"));
+        miOpen = new System.Windows.Forms.ToolStripMenuItem(Lang.T("open_app"));
+        miLang = new System.Windows.Forms.ToolStripMenuItem("English") { Checked = Lang.English };
+        miExit = new System.Windows.Forms.ToolStripMenuItem(Lang.T("exit"));
 
         miToggle.Click += (s, e) => { if (TunnelUp()) Disconnect(); else Connect(); };
         miOpen.Click += (s, e) => { Show(); if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal; Activate(); };
+        miLang.Click += (s, e) => { Prefs.Set("Lang", !Lang.English); ApplyLang(); UpdateStatus(); };
         miExit.Click += (s, e) => { tray.Visible = false; tray.Dispose(); Close(); };
         tray.DoubleClick += (s, e) => { Show(); Activate(); };
 
@@ -149,6 +184,7 @@ public partial class MainWindow : Window
         menu.Items.Add(miStatus);
         menu.Items.Add(miToggle);
         menu.Items.Add(miOpen);
+        menu.Items.Add(miLang);
         menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
         menu.Items.Add(miExit);
         tray.ContextMenuStrip = menu;
@@ -309,10 +345,10 @@ public partial class MainWindow : Window
             using (var hc = new HttpClient { Timeout = TimeSpan.FromSeconds(10) })
             {
                 var ip = hc.GetStringAsync("https://api.ipify.org").GetAwaiter().GetResult().Trim();
-                IpText.Text = "Ваш IP: " + ip;
+                IpText.Text = Lang.T("your_ip") + ": " + ip;
             }
         }
-        catch { IpText.Text = "Ваш IP: не определён"; }
+        catch { IpText.Text = Lang.T("your_ip") + ": —"; }
     }
 
     void OpenClient()
@@ -345,25 +381,25 @@ public partial class MainWindow : Window
         stateOn = on;
         if (on)
         {
-            StatusText.Text = "Подключено";
+            StatusText.Text = Lang.T("connected");
             StatusText.Foreground = Green;
-            PowerBtn.Content = "Выключить VPN";
+            PowerBtn.Content = Lang.T("disconnect");
             PowerBtn.Background = Red;
         }
         else
         {
-            StatusText.Text = "Не подключено";
+            StatusText.Text = Lang.T("disconnected");
             StatusText.Foreground = Dark;
-            PowerBtn.Content = "Включить VPN";
+            PowerBtn.Content = Lang.T("connect");
             PowerBtn.Background = Green;
         }
         Prog.Visibility = Visibility.Collapsed;
         if (tray != null)
         {
             tray.Icon = on ? iconGreen : iconGray;
-            tray.Text = on ? "Pconnect — подключено" : "Pconnect — не подключено";
-            miStatus.Text = on ? "Подключено" : "Не подключено";
-            miToggle.Text = on ? "Выключить VPN" : "Включить VPN";
+            tray.Text = on ? Lang.T("tray_on") : Lang.T("tray_off");
+            miStatus.Text = on ? Lang.T("connected") : Lang.T("disconnected");
+            miToggle.Text = on ? Lang.T("disconnect") : Lang.T("connect");
         }
         DoEvents();
     }
@@ -404,7 +440,7 @@ public partial class MainWindow : Window
         UpdateStatus();
         UpdateIp();
         Ui.PlaySound(true);
-        Ui.ShowToast("Pconnect", "VPN подключён — " + IpText.Text.Replace("Ваш IP: ", ""), "#16A34A");
+        Ui.ShowToast("Pconnect", Lang.T("connected_toast") + " — " + IpText.Text.Replace(Lang.T("your_ip") + ": ", ""), "#16A34A");
         Log("Готово.");
     }
 
@@ -432,7 +468,7 @@ public partial class MainWindow : Window
         IpText.Text = "Ваш IP: —";
         UpdateStatus();
         Ui.PlaySound(false);
-        Ui.ShowToast("Pconnect", "VPN выключен", "#9CA3AF");
+        Ui.ShowToast("Pconnect", Lang.T("disconnected_toast"), "#9CA3AF");
         Log("Готово.");
     }
 }
