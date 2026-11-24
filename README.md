@@ -129,15 +129,48 @@ Install-Module -Name ps2exe -Scope CurrentUser -Force
 
 ```
 Pconnect/
-├── Pconnect.ps1      # сама программа
+├── src/              # C#-версия (настоящий скомпилированный exe)
+│   ├── Pconnect.csproj
+│   ├── MainWindow.xaml / .cs
+│   ├── Config.cs
+│   └── app.manifest
+├── .github/workflows/build.yml  # автосборка (GitHub Actions)
+├── Pconnect.ps1      # PowerShell-версия (полная по функциям)
 ├── config.json       # настройки профилей
-├── build.ps1         # сборка в exe
+├── build.ps1         # сборка PowerShell-версии в exe
 ├── assets/
 │   ├── Pconnect.ico  # иконка
 │   └── Pconnect.png  # логотип
 ├── LICENSE
 └── README.md
 ```
+
+---
+
+## Архитектура: C#-версия
+
+Идёт переезд с PowerShell+ps2exe на настоящий скомпилированный **C#/.NET (WPF)**:
+
+- **Зачем**: быстрый старт, меньше ложных срабатываний антивируса, возможность подписи кода и установщика.
+- **Уже есть** (`src/`): ядро — загрузка конфига, подключение/отключение, трей, проверка IP, фикс маршрута, отключение мешающих программ.
+- **Переносится дальше**: настройки (редактор профилей), защита от обрыва, горячая клавиша, заставка, звуки и уведомления.
+
+### Сборка C#-версии (один exe)
+
+```powershell
+dotnet publish src/Pconnect.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o dist
+```
+
+Получится `dist/Pconnect.exe` (self-contained — .NET уже внутри, ставить ничего не нужно).
+
+### Автосборка на GitHub Actions
+
+`.github/workflows/build.yml` автоматически собирает exe и прикрепляет его к релизу (при создании тега `v*`).
+
+### Подпись кода и установщик
+
+- **Подпись**: нужен сертификат подписи кода (Code Signing) — после подписи пропадёт SmartScreen «Windows защитил ваш компьютер».
+- **Установщик**: Inno Setup или MSIX (для «установил → ярлык на рабочем столе»).
 
 ---
 
