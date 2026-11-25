@@ -721,6 +721,21 @@ public partial class MainWindow : Window
                 await Task.Delay(3000);
             }
 
+            // после подключения — автоопределение адаптера, если он пустой или не существует
+            var adapterValid = !string.IsNullOrEmpty(current.adapter) &&
+                NetworkInterface.GetAllNetworkInterfaces().Any(n => n.Name.Equals(current.adapter, StringComparison.OrdinalIgnoreCase));
+            if (!adapterValid)
+            {
+                var detected = ConfigStore.DetectAdapterName();
+                if (!string.IsNullOrEmpty(detected))
+                {
+                    current.adapter = detected;
+                    try { ConfigStore.Save(config); } catch { }
+                    Log("Адаптер определён: " + detected);
+                    if (current.fixRouting) FixRouting();
+                }
+            }
+
             UpdateStatus();
             RefreshIp(beforeIp);
             connectedAt = DateTime.Now;

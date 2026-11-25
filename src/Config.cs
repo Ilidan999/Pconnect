@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Win32;
@@ -117,5 +119,30 @@ public static class ConfigStore
         }
         var parts = command.Split(new[] { ' ' }, 2);
         return parts[0];
+    }
+
+    // Автоподбор имени VPN-адаптера: по названию (happ/xray/wireguard/...) или по типу Tunnel,
+    // исключая системные интерфейсы Windows (Teredo, 6to4, IP-HTTPS, isatap, Microsoft...).
+    public static string DetectAdapterName()
+    {
+        var specific = new[] { "happ", "xray", "wireguard", "openvpn", "wintun", "tap-windows", "nordlynx", "vpn" };
+        var exclude = new[]
+        {
+            "microsoft", "teredo", "6to4", "isatap", "ip-https", "pseudo-interface",
+            "platform interface", "loopback", "bluetooth", "wi-fi", "directaccess", "debug"
+        };
+        var all = NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => !exclude.Any(x => n.Name.IndexOf(x, StringComparison.OrdinalIgnoreCase) >= 0))
+            .ToList();
+
+        // 1) по имени конкретного VPN-адаптера
+        var named = all.Where(n => specific.Any(k => n.Name.IndexOf(k, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+        // 2) иначе — по типу Tunnel (уже без системных интерфейсов)
+        var tunnel = all.Where(n => n.NetworkInterfaceType == NetworkInterfaceType.Tunnel).ToList();
+        var cands = named.Count > 0 ? named : tunnel;
+        if (cands.Count == 0) return "";
+
+        var up = cands.FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up) ?? cands[0];
+        return up.Name;
     }
 }

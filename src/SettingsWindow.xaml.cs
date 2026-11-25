@@ -169,25 +169,13 @@ public partial class SettingsWindow : Window
 
     void DetectAdapter()
     {
-        var specific = new[] { "happ", "xray", "wireguard", "openvpn", "wintun", "tap-windows", "vpn" };
-        var exclude = new[] { "teredo", "6to4", "isatap", "pseudo-interface" };
-        var all = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(n => !exclude.Any(x => n.Name.IndexOf(x, StringComparison.OrdinalIgnoreCase) >= 0))
-            .ToList();
-
-        // 1) приоритет — по имени (конкретные VPN-адаптеры)
-        var named = all.Where(n => specific.Any(k => n.Name.IndexOf(k, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
-        // 2) иначе — по типу Tunnel
-        var tunnel = all.Where(n => n.NetworkInterfaceType == NetworkInterfaceType.Tunnel).ToList();
-        var cands = named.Count > 0 ? named : tunnel;
-
-        if (cands.Count == 0)
+        var name = ConfigStore.DetectAdapterName();
+        if (string.IsNullOrEmpty(name))
         {
-            Ui.ShowMessage(this, Lang.T("adapter_not_found"));
+            Ui.ShowMessage(this, Lang.T("adapter_not_found"), warning: true);
             return;
         }
-        var up = cands.FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up) ?? cands[0];
-        FAdapter.Text = up.Name;
+        FAdapter.Text = name;
     }
 
     void DetectClientPath()
