@@ -54,6 +54,12 @@ static class Lang
         ["saved"] = ("Настройки сохранены.", "Settings saved."),
         ["no_profile_save"] = ("Нет профиля для сохранения.", "No profile to save."),
         ["adapter_not_found"] = ("VPN-адаптер не найден. Подключите VPN и повторите.", "VPN adapter not found. Connect VPN and retry."),
+        ["sec_data"] = ("ДАННЫЕ", "DATA"),
+        ["export"] = ("Экспорт", "Export"),
+        ["import"] = ("Импорт", "Import"),
+        ["exported"] = ("Настройки экспортированы.", "Settings exported."),
+        ["imported"] = ("Настройки импортированы.", "Settings imported."),
+        ["import_error"] = ("Не удалось импортировать файл настроек.", "Failed to import the settings file."),
     };
 
     public static bool English => Prefs.Get("Lang");

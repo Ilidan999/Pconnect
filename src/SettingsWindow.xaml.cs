@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Microsoft.Win32;
 
 namespace Pconnect;
 
@@ -32,6 +35,8 @@ public partial class SettingsWindow : Window
         SaveBtn.Click += (s, e) => Save();
         CancelBtn.Click += (s, e) => Close();
         SWClose.Click += (s, e) => Close();
+        ExportBtn.Click += (s, e) => ExportConfig();
+        ImportBtn.Click += (s, e) => ImportConfig();
         RbRu.Checked += (s, e) => SetLanguage(false);
         RbEn.Checked += (s, e) => SetLanguage(true);
         PreviewMouseLeftButtonDown += OnDrag;
@@ -62,6 +67,9 @@ public partial class SettingsWindow : Window
         SecProfile.Text = Lang.T("sec_profile");
         SecConnection.Text = Lang.T("sec_connection");
         SecExtra.Text = Lang.T("sec_extra");
+        SecData.Text = Lang.T("sec_data");
+        ExportBtn.Content = Lang.T("export");
+        ImportBtn.Content = Lang.T("import");
         NameLabel.Text = Lang.T("name");
         ConnectLabel.Text = Lang.T("connect_cmd");
         DisconnectLabel.Text = Lang.T("disconnect_cmd");
@@ -110,7 +118,11 @@ public partial class SettingsWindow : Window
     void RefreshList()
     {
         ProfileCombo.ItemsSource = profiles.Select(p => p.name).ToList();
-        if (profiles.Count > 0) ProfileCombo.SelectedIndex = 0;
+        if (profiles.Count > 0)
+        {
+            var def = profiles.FirstOrDefault(p => p.name == config.defaultProfile);
+            ProfileCombo.SelectedItem = def != null ? def.name : profiles[0].name;
+        }
         else { current = null; ClearFields(); }
     }
 
@@ -176,13 +188,9 @@ public partial class SettingsWindow : Window
         FAdapter.Text = up.Name;
     }
 
-    void Save()
+    void SyncCurrentProfile()
     {
-        if (current == null)
-        {
-            Ui.ShowMessage(this, Lang.T("no_profile_save"), warning: true);
-            return;
-        }
+        if (current == null) return;
         current.name = FName.Text;
         current.connect = FConnect.Text;
         current.disconnect = FDisconnect.Text;
@@ -191,11 +199,64 @@ public partial class SettingsWindow : Window
         current.fixRouting = FFixRouting.IsChecked == true;
         current.interferingServices = SplitCsv(FServices.Text);
         current.interferingProcesses = SplitCsv(FProcesses.Text);
+    }
+
+    void Save()
+    {
+        if (current == null)
+        {
+            Ui.ShowMessage(this, Lang.T("no_profile_save"), warning: true);
+            return;
+        }
+        SyncCurrentProfile();
         Prefs.Set("KillSwitch", FKillSwitch.IsChecked == true);
         config.profiles = profiles;
         ConfigStore.Save(config);
         RefreshList();
         Ui.ShowMessage(this, Lang.T("saved"));
+    }
+
+    void ExportConfig()
+    {
+        try
+        {
+            var dlg = new SaveFileDialog { FileName = "Pconnect-config.json", Filter = "JSON (*.json)|*.json", Title = Lang.T("export") };
+            if (dlg.ShowDialog() != true) return;
+            SyncCurrentProfile();
+            config.profiles = profiles;
+            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(dlg.FileName, json);
+            Ui.ShowMessage(this, Lang.T("exported"));
+        }
+        catch
+        {
+            Ui.ShowMessage(this, Lang.T("import_error"), warning: true);
+        }
+    }
+
+    void ImportConfig()
+    {
+        try
+        {
+            var dlg = new OpenFileDialog { Filter = "JSON (*.json)|*.json", Title = Lang.T("import") };
+            if (dlg.ShowDialog() != true) return;
+            var txt = File.ReadAllText(dlg.FileName);
+            var imported = JsonSerializer.Deserialize<AppConfig>(txt);
+            if (imported == null || imported.profiles == null || imported.profiles.Count == 0)
+            {
+                Ui.ShowMessage(this, Lang.T("import_error"), warning: true);
+                return;
+            }
+            config = imported;
+            profiles = config.profiles;
+            ConfigStore.Save(config);
+            RefreshList();
+            Ui.ShowMessage(this, Lang.T("imported"));
+        }
+        catch
+        {
+            Ui.ShowMessage(this, Lang.T("import_error"), warning: true);
+        }
     }
 
     static List<string> SplitCsv(string s) =>

@@ -255,6 +255,12 @@
         <TextBox x:Name="FServices" Height="28"/>
         <TextBlock x:Name="ProcessesLabel" Style="{StaticResource FieldLabel}" Text="Процессы для завершения (через запятую)"/>
         <TextBox x:Name="FProcesses" Height="28"/>
+
+        <TextBlock x:Name="SecData" Style="{StaticResource SectionLabel}" Text="ДАННЫЕ"/>
+        <StackPanel Orientation="Horizontal">
+          <Button x:Name="ExportBtn" Content="Экспорт" Height="34" Padding="16,0" Style="{StaticResource FieldBtn}"/>
+          <Button x:Name="ImportBtn" Content="Импорт" Height="34" Padding="16,0" Margin="10,0,0,0" Style="{StaticResource FieldBtn}"/>
+        </StackPanel>
         </StackPanel>
       </ScrollViewer>
 
