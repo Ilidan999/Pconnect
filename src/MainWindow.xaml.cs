@@ -548,10 +548,14 @@ public partial class MainWindow : Window
         }
     }
 
-    void OpenClient()
+    async void OpenClient()
     {
         if (!string.IsNullOrEmpty(current?.clientPath) && File.Exists(current.clientPath))
+        {
             Process.Start(new ProcessStartInfo(current.clientPath) { UseShellExecute = true });
+            await Task.Delay(500);
+            ShowClientWindow();
+        }
         else
             Log("Не указан clientPath в профиле.");
     }
@@ -569,7 +573,38 @@ public partial class MainWindow : Window
                 {
                     p.Refresh();
                     var h = p.MainWindowHandle;
-                    if (h != IntPtr.Zero) ShowWindow(h, 6); // SW_MINIMIZE
+                    if (h != IntPtr.Zero) ShowWindow(h, 0); // SW_HIDE — полностью скрыть
+                }
+                catch { }
+            }
+        }
+        catch { }
+    }
+
+    // опрашивает появление окна клиента и прячет его (пока идёт подключение)
+    async Task HideClientWindowPollAsync()
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            HideClientWindow();
+            await Task.Delay(120);
+        }
+    }
+
+    void ShowClientWindow()
+    {
+        try
+        {
+            if (current == null || string.IsNullOrEmpty(current.clientPath)) return;
+            var name = Path.GetFileNameWithoutExtension(current.clientPath);
+            if (string.IsNullOrEmpty(name)) return;
+            foreach (var p in Process.GetProcessesByName(name))
+            {
+                try
+                {
+                    p.Refresh();
+                    var h = p.MainWindowHandle;
+                    if (h != IntPtr.Zero) ShowWindow(h, 5); // SW_SHOW
                 }
                 catch { }
             }
@@ -644,8 +679,7 @@ public partial class MainWindow : Window
             StopInterfering();
             Log("Команда подключения: " + current.connect);
             RunAction(current.connect);
-            await Task.Delay(700);
-            HideClientWindow();
+            await HideClientWindowPollAsync();
 
             if (!string.IsNullOrEmpty(current.adapter))
             {
@@ -700,8 +734,7 @@ public partial class MainWindow : Window
                 SetWorking(true, Lang.T("disconnecting"));
                 Log("Команда отключения: " + current.disconnect);
                 RunAction(current.disconnect);
-                await Task.Delay(700);
-                HideClientWindow();
+                await HideClientWindowPollAsync();
                 for (int i = 0; i < 25; i++)
                 {
                     if (!TunnelUp()) break;
