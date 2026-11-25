@@ -626,6 +626,7 @@ public partial class MainWindow : Window
         config = ConfigStore.Load();
         current = config.profiles.FirstOrDefault(p => p.name == config.defaultProfile)
                ?? config.profiles.FirstOrDefault();
+        ApplyLang();
         UpdateStatus();
     }
 

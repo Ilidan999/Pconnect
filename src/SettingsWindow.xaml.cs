@@ -32,6 +32,8 @@ public partial class SettingsWindow : Window
         SaveBtn.Click += (s, e) => Save();
         CancelBtn.Click += (s, e) => Close();
         SWClose.Click += (s, e) => Close();
+        RbRu.Checked += (s, e) => SetLanguage(false);
+        RbEn.Checked += (s, e) => SetLanguage(true);
         PreviewMouseLeftButtonDown += OnDrag;
         Loaded += OnLoaded;
     }
@@ -41,8 +43,38 @@ public partial class SettingsWindow : Window
         config = ConfigStore.Load();
         profiles = config.profiles ?? new List<Profile>();
         FKillSwitch.IsChecked = Prefs.Get("KillSwitch");
-
+        RbRu.IsChecked = !Lang.English;
+        RbEn.IsChecked = Lang.English;
+        ApplyLang();
         RefreshList();
+    }
+
+    void SetLanguage(bool english)
+    {
+        Prefs.Set("Lang", english);
+        ApplyLang();
+    }
+
+    void ApplyLang()
+    {
+        TitleText.Text = Lang.T("settings");
+        LangLabel.Text = Lang.T("language");
+        SecProfile.Text = Lang.T("sec_profile");
+        SecConnection.Text = Lang.T("sec_connection");
+        SecExtra.Text = Lang.T("sec_extra");
+        NameLabel.Text = Lang.T("name");
+        ConnectLabel.Text = Lang.T("connect_cmd");
+        DisconnectLabel.Text = Lang.T("disconnect_cmd");
+        AdapterLabel.Text = Lang.T("adapter");
+        ClientPathLabel.Text = Lang.T("client_path");
+        ServicesLabel.Text = Lang.T("services");
+        ProcessesLabel.Text = Lang.T("processes");
+        FFixRouting.Content = Lang.T("fix_routing");
+        FKillSwitch.Content = Lang.T("kill_switch");
+        AddBtn.Content = Lang.T("add");
+        DetectBtn.Content = Lang.T("detect");
+        SaveBtn.Content = Lang.T("save");
+        CancelBtn.Content = Lang.T("cancel");
     }
 
     void OnDrag(object sender, MouseButtonEventArgs e)
@@ -65,7 +97,7 @@ public partial class SettingsWindow : Window
         {
             var t = cur.GetType().Name;
             if (t == "Button" || t == "TextBox" || t == "ComboBox" || t == "CheckBox" ||
-                t == "ScrollBar" || t == "GridSplitter" || t == "Thumb" || t == "RepeatButton")
+                t == "RadioButton" || t == "ScrollBar" || t == "GridSplitter" || t == "Thumb" || t == "RepeatButton")
                 return true;
             if (cur is Visual) cur = VisualTreeHelper.GetParent(cur);
             else if (cur is ContentElement) cur = System.Windows.ContentOperations.GetParent((ContentElement)cur);
@@ -130,7 +162,7 @@ public partial class SettingsWindow : Window
             .ToList();
         if (cands.Count == 0)
         {
-            MessageBox.Show("VPN-адаптер не найден. Подключите VPN и повторите.", "Pconnect", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(Lang.T("adapter_not_found"), "Pconnect", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         var up = cands.FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up) ?? cands[0];
@@ -141,7 +173,7 @@ public partial class SettingsWindow : Window
     {
         if (current == null)
         {
-            MessageBox.Show("Нет профиля для сохранения.", "Pconnect", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(Lang.T("no_profile_save"), "Pconnect", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         current.name = FName.Text;
@@ -156,7 +188,7 @@ public partial class SettingsWindow : Window
         config.profiles = profiles;
         ConfigStore.Save(config);
         RefreshList();
-        MessageBox.Show("Настройки сохранены.", "Pconnect", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show(Lang.T("saved"), "Pconnect", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     static List<string> SplitCsv(string s) =>
