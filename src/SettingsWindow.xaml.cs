@@ -38,6 +38,8 @@ public partial class SettingsWindow : Window
         SWClose.Click += (s, e) => Close();
         ExportBtn.Click += (s, e) => ExportConfig();
         ImportBtn.Click += (s, e) => ImportConfig();
+        FFixRouting.Click += (s, e) => Ui.PlayClick();
+        FKillSwitch.Click += (s, e) => Ui.PlayClick();
         RbRu.Checked += (s, e) => SetLanguage(false);
         RbEn.Checked += (s, e) => SetLanguage(true);
         PreviewMouseLeftButtonDown += OnDrag;

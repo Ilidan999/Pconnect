@@ -54,7 +54,7 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+            <Border CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
           </ControlTemplate>
@@ -272,7 +272,7 @@
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
           <TextBox x:Name="FAdapter" Height="28"/>
-          <Button x:Name="DetectBtn" Content="Подобрать" Grid.Column="1" Height="28" Margin="8,0,0,0" Padding="14,0" Style="{StaticResource FieldBtn}"/>
+          <Button x:Name="DetectBtn" Content="Подобрать" Grid.Column="1" Height="28" Margin="8,0,0,0" Padding="16,4" Style="{StaticResource FieldBtn}"/>
         </Grid>
         <TextBlock x:Name="ClientPathLabel" Style="{StaticResource FieldLabel}" Text="Путь к приложению"/>
         <Grid>
@@ -281,9 +281,9 @@
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
           <TextBox x:Name="FClientPath" Height="28"/>
-          <Button x:Name="DetectClientBtn" Content="Подобрать" Grid.Column="1" Height="28" Margin="8,0,0,0" Padding="14,0" Style="{StaticResource FieldBtn}"/>
+          <Button x:Name="DetectClientBtn" Content="Подобрать" Grid.Column="1" Height="28" Margin="8,0,0,0" Padding="16,4" Style="{StaticResource FieldBtn}"/>
         </Grid>
-        <CheckBox x:Name="FFixRouting" Content="Исправлять маршрутизацию (IgnoreDefaultRoutes)" Style="{StaticResource ToggleSwitch}" Margin="0,2,0,0"/>
+        <CheckBox x:Name="FFixRouting" Content="Исправлять маршрутизацию (IgnoreDefaultRoutes)" Style="{StaticResource ToggleSwitch}" Margin="0,6,0,6"/>
 
         <TextBlock x:Name="SecExtra" Style="{StaticResource SectionLabel}" Text="ДОПОЛНИТЕЛЬНО"/>
         <TextBlock x:Name="ServicesLabel" Style="{StaticResource FieldLabel}" Text="Службы для отключения (через запятую)"/>
@@ -293,14 +293,14 @@
 
         <TextBlock x:Name="SecData" Style="{StaticResource SectionLabel}" Text="ДАННЫЕ"/>
         <StackPanel Orientation="Horizontal">
-          <Button x:Name="ExportBtn" Content="Экспорт" Height="34" Padding="16,0" Style="{StaticResource FieldBtn}"/>
-          <Button x:Name="ImportBtn" Content="Импорт" Height="34" Padding="16,0" Margin="10,0,0,0" Style="{StaticResource FieldBtn}"/>
+          <Button x:Name="ExportBtn" Content="Экспорт" Height="34" Padding="20,6" Style="{StaticResource FieldBtn}"/>
+          <Button x:Name="ImportBtn" Content="Импорт" Height="34" Padding="20,6" Margin="10,0,0,0" Style="{StaticResource FieldBtn}"/>
         </StackPanel>
         </StackPanel>
       </ScrollViewer>
 
       <StackPanel Grid.Row="3" Margin="0,12,0,0">
-        <CheckBox x:Name="FKillSwitch" Content="Защита от обрыва — авто-переподключение при падении VPN" Style="{StaticResource ToggleSwitch}"/>
+        <CheckBox x:Name="FKillSwitch" Content="Защита от обрыва — авто-переподключение при падении VPN" Style="{StaticResource ToggleSwitch}" Margin="0,0,0,4"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
           <Button x:Name="SaveBtn" Content="Сохранить" Width="120" Height="38" Style="{StaticResource PrimaryBtn}" Background="#22C55E"/>
           <Button x:Name="CancelBtn" Content="Закрыть" Width="110" Height="38" Margin="10,0,0,0" Style="{StaticResource FieldBtn}"/>

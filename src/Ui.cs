@@ -139,6 +139,19 @@ static class Ui
         catch { }
     }
 
+    // ---------- короткий «клик» для переключателей ----------
+    public static void PlayClick()
+    {
+        try
+        {
+            var bytes = BuildWav(new double[] { 660.0 }, 0.05, 0.18);
+            using (var ms = new MemoryStream(bytes))
+            using (var sp = new System.Media.SoundPlayer(ms))
+                sp.Play();
+        }
+        catch { }
+    }
+
     static ControlTemplate MakeButtonTemplate(Color bg)
     {
         var b = new FrameworkElementFactory(typeof(Border));
