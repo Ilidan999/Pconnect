@@ -182,8 +182,13 @@ public partial class MainWindow : Window
         {
             Dispatcher.Invoke(() =>
             {
-                Log(Lang.T("update_available") + ": " + res.version);
-                Ui.ShowToast("Pconnect", Lang.T("update_available") + ": " + res.version, "#6D5CF7");
+                Log(Lang.T("update_available") + ": " + res.version + " — " + res.url);
+                Ui.ShowToast("Pconnect", Lang.T("update_available") + ": " + res.version, "#8B5CF6");
+                if (!string.IsNullOrEmpty(res.url))
+                {
+                    try { Process.Start(new ProcessStartInfo(res.url) { UseShellExecute = true }); }
+                    catch { }
+                }
             });
         }
     }
