@@ -23,12 +23,8 @@ public partial class App : Application
     Window BuildSplash()
     {
         var logo = new Image { Width = 66, Height = 66, HorizontalAlignment = HorizontalAlignment.Center };
-        var png = Path.Combine(ConfigStore.AppDir, "assets", "Pconnect.png");
-        if (File.Exists(png))
-        {
-            try { logo.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(png)); }
-            catch { }
-        }
+        var logoImg = Ui.LoadLogo();
+        if (logoImg != null) logo.Source = logoImg;
 
         var title = new TextBlock
         {

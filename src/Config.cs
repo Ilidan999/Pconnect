@@ -29,7 +29,11 @@ public class AppConfig
 public static class ConfigStore
 {
     public static string AppDir => AppContext.BaseDirectory;
-    public static string ConfigPath => Path.Combine(AppDir, "config.json");
+    // Настройки хранятся в профиле пользователя (%AppData%), а не рядом с exe:
+    // это работает и в Program Files, и для каждого пользователя отдельно.
+    public static string AppDataDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Pconnect");
+    public static string ConfigPath => Path.Combine(AppDataDir, "config.json");
 
     public static AppConfig Load()
     {
@@ -42,6 +46,19 @@ public static class ConfigStore
             }
         }
         catch { }
+
+        // Запасной вариант: config.json рядом с exe (первый запуск после установки)
+        try
+        {
+            var legacy = Path.Combine(AppDir, "config.json");
+            if (File.Exists(legacy))
+            {
+                var txt = File.ReadAllText(legacy);
+                return JsonSerializer.Deserialize<AppConfig>(txt) ?? new AppConfig();
+            }
+        }
+        catch { }
+
         return new AppConfig();
     }
 
@@ -49,6 +66,7 @@ public static class ConfigStore
     {
         try
         {
+            Directory.CreateDirectory(AppDataDir);
             var opt = new JsonSerializerOptions { WriteIndented = true };
             File.WriteAllText(ConfigPath, JsonSerializer.Serialize(cfg, opt));
         }

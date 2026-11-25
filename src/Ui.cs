@@ -97,4 +97,96 @@ static class Ui
         }
         catch { }
     }
+
+    // ---------- логотип (встроенный ресурс, с запасным файлом) ----------
+    public static System.Windows.Media.Imaging.BitmapImage LoadLogo()
+    {
+        try
+        {
+            var asm = typeof(App).Assembly;
+            var stream = asm.GetManifestResourceStream("Pconnect.Assets.Pconnect.png");
+            if (stream == null)
+            {
+                var png = System.IO.Path.Combine(ConfigStore.AppDir, "assets", "Pconnect.png");
+                if (File.Exists(png))
+                    return new System.Windows.Media.Imaging.BitmapImage(new Uri(png));
+                return null;
+            }
+            using (stream)
+            {
+                var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bmp.StreamSource = stream;
+                bmp.EndInit();
+                bmp.Freeze();
+                return bmp;
+            }
+        }
+        catch { return null; }
+    }
+
+    // ---------- короткий собственный звук уведомления ----------
+    public static void PlayNotify()
+    {
+        try
+        {
+            var bytes = BuildWav(new double[] { 880.0, 1174.66 }, 0.12, 0.22);
+            using (var ms = new MemoryStream(bytes))
+            using (var sp = new System.Media.SoundPlayer(ms))
+                sp.Play();
+        }
+        catch { }
+    }
+
+    static ControlTemplate MakeButtonTemplate(Color bg)
+    {
+        var b = new FrameworkElementFactory(typeof(Border));
+        b.SetValue(Border.CornerRadiusProperty, new CornerRadius(7));
+        b.SetValue(Border.BackgroundProperty, new SolidColorBrush(bg));
+        var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+        cp.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        cp.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        b.AppendChild(cp);
+        return new ControlTemplate(typeof(Button)) { VisualTree = b };
+    }
+
+    // ---------- своё модальное сообщение (вместо MessageBox + Windows-звука) ----------
+    public static void ShowMessage(Window owner, string message, string title = "Pconnect", bool warning = false)
+    {
+        PlayNotify();
+        try
+        {
+            var titleTb = new TextBlock { Text = title, FontSize = 14, FontWeight = FontWeights.Bold, Foreground = MakeBrush("#F4F5F9") };
+            var msgTb = new TextBlock { Text = message, FontSize = 12.5, Foreground = MakeBrush("#A5ABC0"), TextWrapping = TextWrapping.Wrap, MaxWidth = 330, Margin = new Thickness(0, 8, 0, 0) };
+            var okBtn = new Button
+            {
+                Content = "OK",
+                Width = 92, Height = 34,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 18, 0, 0),
+                Foreground = Brushes.White,
+                FontWeight = FontWeights.Bold,
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Template = MakeButtonTemplate(warning ? Color.FromRgb(0xEF, 0x44, 0x44) : Color.FromRgb(0x22, 0xC5, 0x5E))
+            };
+            var stack = new StackPanel { Margin = new Thickness(22, 18, 22, 18) };
+            stack.Children.Add(titleTb);
+            stack.Children.Add(msgTb);
+            stack.Children.Add(okBtn);
+            var border = new Border { CornerRadius = new CornerRadius(14), Background = MakeBrush("#1E2029"), BorderBrush = MakeBrush("#2E3245"), BorderThickness = new Thickness(1), Child = stack };
+            var w = new Window
+            {
+                Width = 380, SizeToContent = SizeToContent.Height, WindowStyle = WindowStyle.None,
+                AllowsTransparency = true, Background = Brushes.Transparent,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, Topmost = true, Content = border
+            };
+            if (owner != null) w.Owner = owner;
+            okBtn.Click += (s, e) => w.Close();
+            w.ShowDialog();
+        }
+        catch { }
+    }
 }

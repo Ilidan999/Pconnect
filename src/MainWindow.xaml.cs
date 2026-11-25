@@ -98,12 +98,8 @@ public partial class MainWindow : Window
             Log("Pconnect готов. Профиль: " + current.name);
         }
 
-        var png = Path.Combine(ConfigStore.AppDir, "assets", "Pconnect.png");
-        if (File.Exists(png))
-        {
-            try { Logo.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(png)); }
-            catch { }
-        }
+        var logoImg = Ui.LoadLogo();
+        if (logoImg != null) Logo.Source = logoImg;
 
         SetupTray();
         SetupAnim();

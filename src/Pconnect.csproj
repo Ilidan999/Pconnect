@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Flags\**\*.png" />
+    <EmbeddedResource Include="..\assets\Pconnect.png" LogicalName="Pconnect.Assets.Pconnect.png" />
   </ItemGroup>
 
 </Project>

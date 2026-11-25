@@ -169,7 +169,7 @@ public partial class SettingsWindow : Window
 
         if (cands.Count == 0)
         {
-            MessageBox.Show(Lang.T("adapter_not_found"), "Pconnect", MessageBoxButton.OK, MessageBoxImage.Information);
+            Ui.ShowMessage(this, Lang.T("adapter_not_found"));
             return;
         }
         var up = cands.FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up) ?? cands[0];
@@ -180,7 +180,7 @@ public partial class SettingsWindow : Window
     {
         if (current == null)
         {
-            MessageBox.Show(Lang.T("no_profile_save"), "Pconnect", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Ui.ShowMessage(this, Lang.T("no_profile_save"), warning: true);
             return;
         }
         current.name = FName.Text;
@@ -195,7 +195,7 @@ public partial class SettingsWindow : Window
         config.profiles = profiles;
         ConfigStore.Save(config);
         RefreshList();
-        MessageBox.Show(Lang.T("saved"), "Pconnect", MessageBoxButton.OK, MessageBoxImage.Information);
+        Ui.ShowMessage(this, Lang.T("saved"));
     }
 
     static List<string> SplitCsv(string s) =>
