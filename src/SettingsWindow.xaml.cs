@@ -30,6 +30,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         ProfileCombo.SelectionChanged += (s, e) => LoadFields();
         DetectBtn.Click += (s, e) => DetectAdapter();
+        DetectClientBtn.Click += (s, e) => DetectClientPath();
         AddBtn.Click += (s, e) => AddProfile();
         DelBtn.Click += (s, e) => DeleteProfile();
         SaveBtn.Click += (s, e) => Save();
@@ -81,6 +82,7 @@ public partial class SettingsWindow : Window
         FKillSwitch.Content = Lang.T("kill_switch");
         AddBtn.Content = Lang.T("add");
         DetectBtn.Content = Lang.T("detect");
+        DetectClientBtn.Content = Lang.T("detect");
         SaveBtn.Content = Lang.T("save");
         CancelBtn.Content = Lang.T("cancel");
     }
@@ -186,6 +188,17 @@ public partial class SettingsWindow : Window
         }
         var up = cands.FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up) ?? cands[0];
         FAdapter.Text = up.Name;
+    }
+
+    void DetectClientPath()
+    {
+        var path = ConfigStore.DetectClientPath();
+        if (string.IsNullOrEmpty(path))
+        {
+            Ui.ShowMessage(this, Lang.T("client_not_found"), warning: true);
+            return;
+        }
+        FClientPath.Text = path;
     }
 
     void SyncCurrentProfile()

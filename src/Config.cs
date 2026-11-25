@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Win32;
 
 namespace Pconnect;
 
@@ -71,5 +73,49 @@ public static class ConfigStore
             File.WriteAllText(ConfigPath, JsonSerializer.Serialize(cfg, opt));
         }
         catch { }
+    }
+
+    // Автоподбор пути к VPN-клиенту: по обработчику протокола happ:// в реестре,
+    // затем по запущенному процессу Happ.
+    public static string DetectClientPath()
+    {
+        try
+        {
+            var cmd = Registry.GetValue(@"HKEY_CLASSES_ROOT\happ\shell\open\command", "", null) as string;
+            if (!string.IsNullOrEmpty(cmd))
+            {
+                var path = ExtractExePath(cmd);
+                if (File.Exists(path)) return path;
+            }
+        }
+        catch { }
+
+        try
+        {
+            foreach (var p in Process.GetProcessesByName("Happ"))
+            {
+                try
+                {
+                    var path = p.MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
+                }
+                catch { }
+            }
+        }
+        catch { }
+
+        return "";
+    }
+
+    static string ExtractExePath(string command)
+    {
+        command = (command ?? "").Trim();
+        if (command.StartsWith("\""))
+        {
+            int end = command.IndexOf('"', 1);
+            return end > 1 ? command.Substring(1, end - 1) : command;
+        }
+        var parts = command.Split(new[] { ' ' }, 2);
+        return parts[0];
     }
 }

@@ -247,7 +247,14 @@
           <Button x:Name="DetectBtn" Content="Подобрать" Grid.Column="1" Height="28" Margin="8,0,0,0" Padding="14,0" Style="{StaticResource FieldBtn}"/>
         </Grid>
         <TextBlock x:Name="ClientPathLabel" Style="{StaticResource FieldLabel}" Text="Путь к приложению"/>
-        <TextBox x:Name="FClientPath" Height="28"/>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <TextBox x:Name="FClientPath" Height="28"/>
+          <Button x:Name="DetectClientBtn" Content="Подобрать" Grid.Column="1" Height="28" Margin="8,0,0,0" Padding="14,0" Style="{StaticResource FieldBtn}"/>
+        </Grid>
         <CheckBox x:Name="FFixRouting" Content="Исправлять маршрутизацию (IgnoreDefaultRoutes)" FontSize="12" Foreground="#D6DAE6" Margin="0,2,0,0"/>
 
         <TextBlock x:Name="SecExtra" Style="{StaticResource SectionLabel}" Text="ДОПОЛНИТЕЛЬНО"/>

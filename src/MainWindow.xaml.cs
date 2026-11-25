@@ -98,6 +98,18 @@ public partial class MainWindow : Window
             Log("Pconnect готов. Профиль: " + current.name);
         }
 
+        // Автоподбор пути к VPN-клиенту, если он не указан или файл не существует
+        if (current != null && (string.IsNullOrEmpty(current.clientPath) || !File.Exists(current.clientPath)))
+        {
+            var detected = ConfigStore.DetectClientPath();
+            if (!string.IsNullOrEmpty(detected))
+            {
+                current.clientPath = detected;
+                try { ConfigStore.Save(config); } catch { }
+                Log("Найден VPN-клиент: " + detected);
+            }
+        }
+
         var logoImg = Ui.LoadLogo();
         if (logoImg != null) Logo.Source = logoImg;
 
