@@ -28,7 +28,7 @@ jobs:
 
       - name: Build installer
         shell: pwsh
-        run: & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\Pconnect.iss
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\Pconnect.iss'
 
       - name: Sign binaries (if certificate is provided)
         shell: pwsh
