@@ -98,7 +98,12 @@
       </Style.Triggers>
     </Style>
   </Window.Resources>
-  <Grid Margin="12">
+  <Grid Margin="16">
+    <Border CornerRadius="26" Background="#000000">
+      <Border.Effect>
+        <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.5" Color="#000000"/>
+      </Border.Effect>
+    </Border>
     <Border x:Name="Surface" CornerRadius="26" BorderThickness="1" BorderBrush="#2A2D3D">
       <Border.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -106,9 +111,6 @@
           <GradientStop Color="#10121B" Offset="1"/>
         </LinearGradientBrush>
       </Border.Background>
-      <Border.Effect>
-        <DropShadowEffect BlurRadius="26" ShadowDepth="0" Opacity="0.5" Color="#000000"/>
-      </Border.Effect>
       <Grid>
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto"/>
@@ -127,9 +129,6 @@
         </StackPanel>
 
         <Border Grid.Row="1" Margin="16,0,16,0" CornerRadius="22" Background="#232634" BorderBrush="#2E3245" BorderThickness="1">
-          <Border.Effect>
-            <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.25" Color="#000000"/>
-          </Border.Effect>
           <StackPanel Margin="24,22,24,22">
             <StackPanel Orientation="Horizontal">
               <Ellipse x:Name="Dot" Width="18" Height="18" VerticalAlignment="Center" Fill="#6B7280"/>
@@ -143,11 +142,7 @@
             </StackPanel>
             <TextBlock x:Name="IpText" Text="Ваш IP: —" FontSize="13" Foreground="#8B91A5" Margin="0,5,0,0"/>
             <TextBlock x:Name="TimerText" Text="" FontSize="13" Foreground="#8B91A5" Margin="0,5,0,0"/>
-            <Button x:Name="PowerBtn" Content="Включить VPN" Style="{StaticResource PillButton}" Height="56" Margin="0,20,0,0" FontSize="16" Background="#22C55E">
-              <Button.Effect>
-                <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.35" Color="#000000"/>
-              </Button.Effect>
-            </Button>
+            <Button x:Name="PowerBtn" Content="Включить VPN" Style="{StaticResource PillButton}" Height="56" Margin="0,20,0,0" FontSize="16" Background="#22C55E"/>
             <ProgressBar x:Name="Prog" Height="5" Margin="0,14,0,0" IsIndeterminate="True" Visibility="Collapsed" Foreground="#8B5CF6" Background="#2A2D3D"/>
           </StackPanel>
         </Border>

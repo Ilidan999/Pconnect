@@ -58,7 +58,6 @@ public partial class App : Application
             Ui.MakeBrush("#1B1D29").Color, Ui.MakeBrush("#10121B").Color, new Point(0, 0), new Point(0, 1));
         border.BorderBrush = Ui.MakeBrush("#2A2D3D");
         border.BorderThickness = new Thickness(1);
-        border.Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 0, Opacity = 0.5, Color = Colors.Black };
 
         return new Window
         {

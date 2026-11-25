@@ -83,7 +83,6 @@ static class Ui
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(16, 12, 16, 12) };
             row.Children.Add(dot); row.Children.Add(right);
             var border = new Border { CornerRadius = new CornerRadius(14), Margin = new Thickness(6), Background = MakeBrush("#262A3A"), BorderBrush = MakeBrush("#3A3F54"), BorderThickness = new Thickness(1), Child = row };
-            border.Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Opacity = 0.45, Color = Colors.Black };
             var w = new Window
             {
                 Width = 330, SizeToContent = SizeToContent.Height, WindowStyle = WindowStyle.None,

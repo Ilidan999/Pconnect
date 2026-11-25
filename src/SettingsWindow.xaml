@@ -78,7 +78,6 @@
         <GradientStop Color="#10121B" Offset="1"/>
       </LinearGradientBrush>
     </Border.Background>
-    <Border.Effect><DropShadowEffect BlurRadius="24" ShadowDepth="0" Opacity="0.5" Color="#000000"/></Border.Effect>
     <Grid Margin="24,20,24,20">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
