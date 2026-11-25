@@ -155,11 +155,18 @@ public partial class SettingsWindow : Window
 
     void DetectAdapter()
     {
-        var keys = new[] { "tun", "tap", "vpn", "happ", "wireguard", "wintun", "openvpn" };
-        var cands = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(n => n.NetworkInterfaceType == NetworkInterfaceType.Tunnel
-                     || keys.Any(k => n.Name.ToLower().Contains(k)))
+        var specific = new[] { "happ", "xray", "wireguard", "openvpn", "wintun", "tap-windows", "vpn" };
+        var exclude = new[] { "teredo", "6to4", "isatap", "pseudo-interface" };
+        var all = NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => !exclude.Any(x => n.Name.IndexOf(x, StringComparison.OrdinalIgnoreCase) >= 0))
             .ToList();
+
+        // 1) приоритет — по имени (конкретные VPN-адаптеры)
+        var named = all.Where(n => specific.Any(k => n.Name.IndexOf(k, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+        // 2) иначе — по типу Tunnel
+        var tunnel = all.Where(n => n.NetworkInterfaceType == NetworkInterfaceType.Tunnel).ToList();
+        var cands = named.Count > 0 ? named : tunnel;
+
         if (cands.Count == 0)
         {
             MessageBox.Show(Lang.T("adapter_not_found"), "Pconnect", MessageBoxButton.OK, MessageBoxImage.Information);

@@ -86,6 +86,35 @@
         </Trigger>
       </Style.Triggers>
     </Style>
+    <Style TargetType="ScrollBar">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Width" Value="8"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Grid Background="Transparent">
+              <Track x:Name="PART_Track" IsDirectionReversed="True">
+                <Track.DecreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                  <Thumb>
+                    <Thumb.Template>
+                      <ControlTemplate TargetType="Thumb">
+                        <Border Background="#3A3F54" CornerRadius="4"/>
+                      </ControlTemplate>
+                    </Thumb.Template>
+                  </Thumb>
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/>
+                </Track.IncreaseRepeatButton>
+              </Track>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </Window.Resources>
   <Border x:Name="Surface" CornerRadius="20" Margin="10" BorderThickness="1" BorderBrush="#2A2D3D">
     <Border.Background>
@@ -115,7 +144,8 @@
         </StackPanel>
       </StackPanel>
 
-      <StackPanel Grid.Row="2" Margin="0,2,0,0">
+      <ScrollViewer Grid.Row="2" Margin="0,2,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+        <StackPanel>
         <TextBlock x:Name="SecProfile" Style="{StaticResource SectionLabel}" Text="ПРОФИЛЬ"/>
         <Grid>
           <Grid.ColumnDefinitions>
@@ -123,7 +153,13 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <ComboBox x:Name="ProfileCombo" Height="32" FontSize="12" Background="#1E2029" Foreground="#F4F5F9" BorderBrush="#333747"/>
+          <ComboBox x:Name="ProfileCombo" Height="32" FontSize="12" Background="#1E2029" Foreground="#F4F5F9" BorderBrush="#333747">
+            <ComboBox.ItemContainerStyle>
+              <Style TargetType="ComboBoxItem">
+                <Setter Property="Foreground" Value="#1B2430"/>
+              </Style>
+            </ComboBox.ItemContainerStyle>
+          </ComboBox>
           <Button x:Name="AddBtn" Content="＋ Добавить" Grid.Column="1" Height="32" Margin="8,0,0,0" Padding="12,0" Style="{StaticResource FieldBtn}"/>
           <Button x:Name="DelBtn" Content="🗑" Grid.Column="2" Width="40" Height="32" Margin="8,0,0,0" Style="{StaticResource FieldBtn}"/>
         </Grid>
@@ -153,7 +189,8 @@
         <TextBox x:Name="FServices" Height="28"/>
         <TextBlock x:Name="ProcessesLabel" Style="{StaticResource FieldLabel}" Text="Процессы для завершения (через запятую)"/>
         <TextBox x:Name="FProcesses" Height="28"/>
-      </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
 
       <StackPanel Grid.Row="3" Margin="0,12,0,0">
         <CheckBox x:Name="FKillSwitch" Content="Защита от обрыва — авто-переподключение при падении VPN" FontSize="12" Foreground="#D6DAE6"/>
