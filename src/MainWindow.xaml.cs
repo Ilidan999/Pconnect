@@ -136,7 +136,7 @@ public partial class MainWindow : Window
             SpacerRow.Height = new GridLength(0);
             LogRow.Height = new GridLength(0);
             LogRow.MinHeight = 0;
-            Height = 520;
+            Height = 560;
         }
         LogBtn.Content = Lang.T("log") + (logExpanded ? "  ▴" : "  ▾");
     }
@@ -455,17 +455,17 @@ public partial class MainWindow : Window
 
     bool refreshingIp = false;
 
-    async void RefreshIp()
+    async void RefreshIp(string avoidIp = null)
     {
         if (refreshingIp) return;
         refreshingIp = true;
         try
         {
-            for (int attempt = 0; attempt < 8; attempt++)
+            for (int attempt = 0; attempt < 15; attempt++)
             {
                 if (attempt > 0) await Task.Delay(1500);
                 var (ip, countryText, countryCode) = await FetchIpAsync();
-                if (ip != null)
+                if (ip != null && (avoidIp == null || ip != avoidIp))
                 {
                     IpText.Text = Lang.T("your_ip") + ": " + ip;
                     CountryText.Text = countryText;
@@ -482,6 +482,12 @@ public partial class MainWindow : Window
             FadeIn(IpText);
         }
         finally { refreshingIp = false; }
+    }
+
+    string CurrentIpText()
+    {
+        var m = Regex.Match(IpText.Text ?? "", @"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}");
+        return m.Success ? m.Value : null;
     }
 
     async Task<(string ip, string countryText, string countryCode)> FetchIpAsync()
@@ -673,6 +679,7 @@ public partial class MainWindow : Window
     {
         if (current == null) return;
         PowerBtn.IsEnabled = false;
+        var beforeIp = CurrentIpText();
         try
         {
             Log("================ ЗАПУСК VPN ================");
@@ -706,7 +713,7 @@ public partial class MainWindow : Window
             }
 
             UpdateStatus();
-            RefreshIp();
+            RefreshIp(beforeIp);
             connectedAt = DateTime.Now;
             Ui.PlaySound(true);
             Ui.ShowToast("Pconnect", Lang.T("connected_toast"), "#22C55E");

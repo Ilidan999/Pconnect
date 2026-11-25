@@ -158,14 +158,19 @@
         <GridSplitter x:Name="LogSplitter" Grid.Row="5" Height="8" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                       ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Background="Transparent" Cursor="SizeNS"/>
 
-        <Border x:Name="LogCard" Grid.Row="6" Margin="16,4,16,12" CornerRadius="14" Background="#1E2029" BorderBrush="#2E3245" BorderThickness="1">
-          <Grid Margin="14,12,14,12">
+        <Border x:Name="LogCard" Grid.Row="6" Margin="16,4,16,12" CornerRadius="14" Background="#171922" BorderBrush="#2E3245" BorderThickness="1">
+          <Grid>
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>
               <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <TextBlock x:Name="LogCaption" Text="Журнал" FontSize="11" Foreground="#6B7280"/>
-            <TextBox x:Name="LogBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#C9CEDC" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,5,0,0"/>
+            <StackPanel Orientation="Horizontal" Margin="12,10,12,8">
+              <Ellipse Width="10" Height="10" Fill="#FF5F57" Margin="0,0,6,0"/>
+              <Ellipse Width="10" Height="10" Fill="#FEBC2E" Margin="0,0,6,0"/>
+              <Ellipse Width="10" Height="10" Fill="#28C840" Margin="0,0,10,0"/>
+              <TextBlock x:Name="LogCaption" Text="Журнал" FontSize="11" Foreground="#8B91A5" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBox x:Name="LogBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#B8C0CC" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="12,0,12,10"/>
           </Grid>
         </Border>
 
