@@ -23,4 +23,8 @@
     <DebugType>none</DebugType>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Flags\**\*.png" />
+  </ItemGroup>
+
 </Project>

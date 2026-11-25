@@ -64,6 +64,8 @@ public partial class MainWindow : Window
     static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
     [DllImport("user32.dll")]
     static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    [DllImport("user32.dll")]
+    static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     public MainWindow()
     {
@@ -514,12 +516,30 @@ public partial class MainWindow : Window
         }
         try
         {
-            var bmp = new System.Windows.Media.Imaging.BitmapImage();
-            bmp.DownloadFailed += (s, e) => FlagBorder.Visibility = Visibility.Collapsed;
-            bmp.BeginInit();
-            bmp.UriSource = new Uri("https://flagcdn.com/w80/" + code.ToLower() + ".png");
-            bmp.EndInit();
-            FlagImg.Source = bmp;
+            code = code.ToLower();
+            var asm = typeof(App).Assembly;
+            var stream = asm.GetManifestResourceStream("Pconnect.Flags." + code + ".png");
+            if (stream == null)
+            {
+                var name = asm.GetManifestResourceNames()
+                    .FirstOrDefault(n => n.EndsWith("." + code + ".png", StringComparison.OrdinalIgnoreCase));
+                stream = name == null ? null : asm.GetManifestResourceStream(name);
+            }
+            if (stream == null)
+            {
+                FlagBorder.Visibility = Visibility.Collapsed;
+                return;
+            }
+            using (stream)
+            {
+                var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bmp.StreamSource = stream;
+                bmp.EndInit();
+                bmp.Freeze();
+                FlagImg.Source = bmp;
+            }
             FlagBorder.Visibility = Visibility.Visible;
         }
         catch
@@ -534,6 +554,27 @@ public partial class MainWindow : Window
             Process.Start(new ProcessStartInfo(current.clientPath) { UseShellExecute = true });
         else
             Log("Не указан clientPath в профиле.");
+    }
+
+    void HideClientWindow()
+    {
+        try
+        {
+            if (current == null || string.IsNullOrEmpty(current.clientPath)) return;
+            var name = Path.GetFileNameWithoutExtension(current.clientPath);
+            if (string.IsNullOrEmpty(name)) return;
+            foreach (var p in Process.GetProcessesByName(name))
+            {
+                try
+                {
+                    p.Refresh();
+                    var h = p.MainWindowHandle;
+                    if (h != IntPtr.Zero) ShowWindow(h, 6); // SW_MINIMIZE
+                }
+                catch { }
+            }
+        }
+        catch { }
     }
 
     void OpenSettings()
@@ -603,6 +644,8 @@ public partial class MainWindow : Window
             StopInterfering();
             Log("Команда подключения: " + current.connect);
             RunAction(current.connect);
+            await Task.Delay(700);
+            HideClientWindow();
 
             if (!string.IsNullOrEmpty(current.adapter))
             {
@@ -618,6 +661,7 @@ public partial class MainWindow : Window
                     return;
                 }
                 Log("Туннель «" + current.adapter + "» поднят.");
+                HideClientWindow();
                 if (current.fixRouting) FixRouting();
             }
             else
@@ -656,6 +700,8 @@ public partial class MainWindow : Window
                 SetWorking(true, Lang.T("disconnecting"));
                 Log("Команда отключения: " + current.disconnect);
                 RunAction(current.disconnect);
+                await Task.Delay(700);
+                HideClientWindow();
                 for (int i = 0; i < 25; i++)
                 {
                     if (!TunnelUp()) break;
