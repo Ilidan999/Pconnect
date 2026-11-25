@@ -112,6 +112,7 @@ public partial class MainWindow : Window
         ApplyLang();
         ApplyLogState();
         UpdateStatus();
+        RefreshIp();
 
         if (!string.IsNullOrWhiteSpace(config.updateRepo))
             _ = CheckUpdatesAsync(config.updateRepo);
@@ -746,11 +747,11 @@ public partial class MainWindow : Window
                 Log("VPN уже не подключён.");
             }
             RestoreInterfering();
-            IpText.Text = Lang.T("your_ip") + ": —";
-            CountryText.Text = "";
             TimerText.Text = "";
             connectedAt = null;
             UpdateStatus();
+            await Task.Delay(800);
+            RefreshIp();
             Ui.PlaySound(false);
             Ui.ShowToast("Pconnect", Lang.T("disconnected_toast"), "#6B7280");
             Log("Готово.");
