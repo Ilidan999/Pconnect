@@ -1,6 +1,6 @@
 ; Pconnect installer — Inno Setup 6
 #define AppName "Pconnect"
-#define AppVersion "2.0.0"
+#define AppVersion "2.0.1"
 #define AppExeName "Pconnect.exe"
 
 [Setup]

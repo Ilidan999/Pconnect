@@ -9,7 +9,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>Pconnect</RootNamespace>
     <AssemblyName>Pconnect</AssemblyName>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <AssemblyTitle>Pconnect</AssemblyTitle>
     <Product>Pconnect</Product>
     <Description>Pconnect - universal VPN helper</Description>
