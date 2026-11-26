@@ -10,8 +10,18 @@ namespace Pconnect;
 
 public partial class App : Application
 {
+    static System.Threading.Mutex instanceMutex;
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        // разрешаем только один экземпляр приложения
+        instanceMutex = new System.Threading.Mutex(true, "Pconnect_SingleInstance", out bool createdNew);
+        if (!createdNew)
+        {
+            Shutdown();
+            return;
+        }
+
         base.OnStartup(e);
         var splash = BuildSplash();
         splash.Show();

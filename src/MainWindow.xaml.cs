@@ -66,6 +66,11 @@ public partial class MainWindow : Window
     static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     [DllImport("user32.dll")]
     static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")]
+    static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    [DllImport("user32.dll")]
+    static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
     public MainWindow()
     {
@@ -602,25 +607,29 @@ public partial class MainWindow : Window
             Log("Не указан clientPath в профиле.");
     }
 
-    void HideClientWindow()
+    // применяет действие ко всем окнам процесса VPN-клиента (включая скрытые)
+    void ForEachClientWindow(Action<IntPtr> action)
     {
         try
         {
             if (current == null || string.IsNullOrEmpty(current.clientPath)) return;
             var name = Path.GetFileNameWithoutExtension(current.clientPath);
             if (string.IsNullOrEmpty(name)) return;
-            foreach (var p in Process.GetProcessesByName(name))
+            var pids = Process.GetProcessesByName(name).Select(p => p.Id).ToHashSet();
+            if (pids.Count == 0) return;
+            EnumWindows((hWnd, lParam) =>
             {
-                try
-                {
-                    p.Refresh();
-                    var h = p.MainWindowHandle;
-                    if (h != IntPtr.Zero) ShowWindow(h, 0); // SW_HIDE — полностью скрыть
-                }
-                catch { }
-            }
+                GetWindowThreadProcessId(hWnd, out uint pid);
+                if (pids.Contains((int)pid)) action(hWnd);
+                return true;
+            }, IntPtr.Zero);
         }
         catch { }
+    }
+
+    void HideClientWindow()
+    {
+        ForEachClientWindow(h => ShowWindow(h, 0)); // SW_HIDE — полностью скрыть
     }
 
     // опрашивает появление окна клиента и прячет его (пока идёт подключение)
@@ -635,21 +644,38 @@ public partial class MainWindow : Window
 
     void ShowClientWindow()
     {
+        ForEachClientWindow(h => ShowWindow(h, 5)); // SW_SHOW
+    }
+
+    // перезапускает браузеры после подключения, чтобы они работали через VPN
+    async Task RestartBrowsersAsync()
+    {
         try
         {
-            if (current == null || string.IsNullOrEmpty(current.clientPath)) return;
-            var name = Path.GetFileNameWithoutExtension(current.clientPath);
-            if (string.IsNullOrEmpty(name)) return;
-            foreach (var p in Process.GetProcessesByName(name))
+            var names = new[] { "chrome", "msedge", "firefox", "opera", "brave", "vivaldi", "browser", "yandex" };
+            int restarted = 0;
+            foreach (var name in names)
             {
-                try
+                var procs = Process.GetProcessesByName(name);
+                if (procs.Length == 0) continue;
+
+                var exePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var p in procs)
                 {
-                    p.Refresh();
-                    var h = p.MainWindowHandle;
-                    if (h != IntPtr.Zero) ShowWindow(h, 5); // SW_SHOW
+                    try { var f = p.MainModule?.FileName; if (!string.IsNullOrEmpty(f)) exePaths.Add(f); } catch { }
                 }
-                catch { }
+
+                foreach (var p in procs) { try { p.Kill(); } catch { } }
+                await Task.Delay(300); // дать процессу полностью завершиться
+
+                foreach (var exe in exePaths)
+                {
+                    try { Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true }); restarted++; }
+                    catch { }
+                }
             }
+            if (restarted > 0)
+                Log("Браузеры перезапущены (" + restarted + ").");
         }
         catch { }
     }
@@ -766,6 +792,7 @@ public partial class MainWindow : Window
             UpdateStatus();
             RefreshIp(beforeIp);
             connectedAt = DateTime.Now;
+            await RestartBrowsersAsync();
             Ui.PlaySound(true);
             Ui.ShowToast("Pconnect", Lang.T("connected_toast"), "#22C55E");
             Log("Готово.");
