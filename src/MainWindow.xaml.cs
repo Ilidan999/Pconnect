@@ -71,6 +71,8 @@ public partial class MainWindow : Window
     static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
     [DllImport("user32.dll")]
     static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count);
 
     public MainWindow()
     {
@@ -310,7 +312,7 @@ public partial class MainWindow : Window
         guard = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         guard.Tick += (s, e) =>
         {
-            if (Prefs.Get("KillSwitch") && stateOn && current != null && !TunnelUp())
+            if (Prefs.Get("KillSwitch") && stateOn && current != null && (!TunnelUp() || !ClientRunning()))
             {
                 Log("Обнаружен обрыв VPN — переподключаю…");
                 stateOn = false;
@@ -401,6 +403,18 @@ public partial class MainWindow : Window
         return NetworkInterface.GetAllNetworkInterfaces()
             .Any(n => n.Name.Equals(current.adapter, StringComparison.OrdinalIgnoreCase)
                    && n.OperationalStatus == OperationalStatus.Up);
+    }
+
+    bool ClientRunning()
+    {
+        try
+        {
+            if (current == null || string.IsNullOrEmpty(current.clientPath)) return true;
+            var name = Path.GetFileNameWithoutExtension(current.clientPath);
+            if (string.IsNullOrEmpty(name)) return true;
+            return Process.GetProcessesByName(name).Length > 0;
+        }
+        catch { return true; }
     }
 
     void RunAction(string cmd)
@@ -620,7 +634,12 @@ public partial class MainWindow : Window
             EnumWindows((hWnd, lParam) =>
             {
                 GetWindowThreadProcessId(hWnd, out uint pid);
-                if (pids.Contains((int)pid)) action(hWnd);
+                if (pids.Contains((int)pid))
+                {
+                    var sb = new System.Text.StringBuilder(256);
+                    GetWindowText(hWnd, sb, 256);
+                    if (sb.Length > 0) action(hWnd); // только окна с заголовком (не служебные)
+                }
                 return true;
             }, IntPtr.Zero);
         }
@@ -676,6 +695,22 @@ public partial class MainWindow : Window
             }
             if (restarted > 0)
                 Log("Браузеры перезапущены (" + restarted + ").");
+        }
+        catch { }
+    }
+
+    // ждёт, пока внешний IP сменится (т.е. VPN-маршрут реально активировался)
+    async Task WaitForIpChangeAsync(string beforeIp)
+    {
+        try
+        {
+            for (int i = 0; i < 15; i++)
+            {
+                var (ip, _, _) = await FetchIpAsync();
+                if (ip != null && (string.IsNullOrEmpty(beforeIp) || ip != beforeIp))
+                    return;
+                await Task.Delay(1500);
+            }
         }
         catch { }
     }
@@ -792,6 +827,7 @@ public partial class MainWindow : Window
             UpdateStatus();
             RefreshIp(beforeIp);
             connectedAt = DateTime.Now;
+            await WaitForIpChangeAsync(beforeIp); // дождаться, пока VPN-маршрут реально активируется
             await RestartBrowsersAsync();
             Ui.PlaySound(true);
             Ui.ShowToast("Pconnect", Lang.T("connected_toast"), "#22C55E");
