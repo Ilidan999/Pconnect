@@ -164,13 +164,22 @@
               <RowDefinition Height="Auto"/>
               <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <StackPanel Orientation="Horizontal" Margin="12,10,12,8">
-              <Ellipse Width="10" Height="10" Fill="#FF5F57" Margin="0,0,6,0"/>
-              <Ellipse Width="10" Height="10" Fill="#FEBC2E" Margin="0,0,6,0"/>
-              <Ellipse Width="10" Height="10" Fill="#28C840" Margin="0,0,10,0"/>
-              <TextBlock x:Name="LogCaption" Text="Журнал" FontSize="11" Foreground="#8B91A5" VerticalAlignment="Center"/>
-            </StackPanel>
-            <TextBox x:Name="LogBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#B8C0CC" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="12,0,12,10"/>
+            <Grid Margin="12,10,12,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Orientation="Horizontal">
+                <Ellipse Width="10" Height="10" Fill="#FF5F57" Margin="0,0,6,0"/>
+                <Ellipse Width="10" Height="10" Fill="#FEBC2E" Margin="0,0,6,0"/>
+                <Ellipse Width="10" Height="10" Fill="#28C840" Margin="0,0,10,0"/>
+                <TextBlock x:Name="LogCaption" Text="Журнал" FontSize="11" Foreground="#8B91A5" VerticalAlignment="Center"/>
+              </StackPanel>
+              <Button x:Name="ClearLogBtn" Content="Очистить" Grid.Column="1" FontSize="11" Foreground="#8B91A5" Background="#00FFFFFF" BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"/>
+            </Grid>
+            <RichTextBox x:Name="LogBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#B8C0CC" FontFamily="Consolas" FontSize="11" VerticalScrollBarVisibility="Auto" Margin="12,0,12,10" Padding="0">
+              <FlowDocument PagePadding="0"/>
+            </RichTextBox>
           </Grid>
         </Border>
 

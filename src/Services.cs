@@ -67,6 +67,7 @@ static class Lang
         ["sound"] = ("Звук", "Sound"),
         ["autostart"] = ("Автозапуск с Windows", "Start with Windows"),
         ["start_in_tray"] = ("Сворачивать в трей при запуске", "Start minimized to tray"),
+        ["clear_log"] = ("Очистить", "Clear"),
     };
 
     public static bool English => Prefs.Get("Lang");

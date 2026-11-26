@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -82,6 +83,7 @@ public partial class MainWindow : Window
         HappBtn.Click += (s, e) => OpenClient();
         IpBtn.Click += (s, e) => RefreshIp();
         LogBtn.Click += (s, e) => ToggleLog();
+        ClearLogBtn.Click += (s, e) => LogBox.Document.Blocks.Clear();
         SettingsBtn.Click += (s, e) => OpenSettings();
         MinBtn.Click += (s, e) => Hide();
         CloseBtn.Click += (s, e) => Hide();
@@ -167,6 +169,7 @@ public partial class MainWindow : Window
         SubText.Text = Lang.T("subtitle");
         HintText.Text = Lang.T("hint");
         LogCaption.Text = Lang.T("log");
+        ClearLogBtn.Content = Lang.T("clear_log");
         HappBtn.Content = Lang.T("open_vpn");
         IpBtn.Content = Lang.T("check_ip");
         LogBtn.Content = Lang.T("log") + (logExpanded ? "  ▴" : "  ▾");
@@ -411,9 +414,30 @@ public partial class MainWindow : Window
 
     void Log(string msg)
     {
-        LogBox.AppendText(DateTime.Now.ToString("HH:mm:ss") + "  " + msg + "\r\n");
-        LogBox.ScrollToEnd();
-        DoEvents();
+        try
+        {
+            var para = new Paragraph { Margin = new Thickness(0) };
+            para.Inlines.Add(new Run(DateTime.Now.ToString("dd.MM HH:mm:ss") + "  " + msg) { Foreground = new SolidColorBrush(LogColor(msg)) });
+            LogBox.Document.Blocks.Add(para);
+            while (LogBox.Document.Blocks.Count > 500)
+                LogBox.Document.Blocks.Remove(LogBox.Document.Blocks.FirstBlock);
+            LogBox.ScrollToEnd();
+            DoEvents();
+        }
+        catch { }
+    }
+
+    static Color LogColor(string msg)
+    {
+        var m = (msg ?? "").ToLower();
+        if (m.Contains("ошибк") || m.Contains("не удалось") || m.Contains("не найден"))
+            return Color.FromRgb(0xFF, 0x6B, 0x6B); // красный — ошибка
+        if (m.Contains("обрыв") || m.Contains("разорван") || m.Contains("переподключ"))
+            return Color.FromRgb(0xFF, 0xB0, 0x4D); // оранжевый — предупреждение
+        if (m.Contains("готов") || m.Contains("поднят") || m.Contains("включена") || m.Contains("отключены")
+            || m.Contains("возвращены") || m.Contains("определ") || m.Contains("найден") || m.Contains("перезапущены") || m.Contains("успешно"))
+            return Color.FromRgb(0x4A, 0xDE, 0x80); // зелёный — успех
+        return Color.FromRgb(0xB8, 0xC0, 0xCC); // серый — обычное
     }
 
     bool TunnelUp()
