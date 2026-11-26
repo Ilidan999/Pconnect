@@ -535,37 +535,46 @@ public partial class MainWindow : Window
 
     void StopInterfering()
     {
-        var script = "";
-        foreach (var s in current.interferingServices)
-            script += "Stop-Service -Name '" + s + "' -Force -ErrorAction SilentlyContinue;Set-Service -Name '" + s + "' -StartupType Disabled -ErrorAction SilentlyContinue;";
-        foreach (var p in current.interferingProcesses)
-            script += "Stop-Process -Name '" + p + "' -Force -ErrorAction SilentlyContinue;";
-
-        var kw = current.interferingKeywords
-            .Concat(DefaultKeywords)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct()
-            .ToList();
-        if (kw.Count > 0)
+        try
         {
-            var re = "(?i)(" + string.Join("|", kw.Select(Regex.Escape)) + ")";
-            script += "Get-Service | Where-Object { $_.Name -match '" + re + "' -or $_.DisplayName -match '" + re + "' } | ForEach-Object { Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue; Set-Service -Name $_.Name -StartupType Disabled -ErrorAction SilentlyContinue };";
-            script += "Get-Process | Where-Object { $_.ProcessName -match '" + re + "' } | Stop-Process -Force -ErrorAction SilentlyContinue;";
-        }
+            var savedPath = System.IO.Path.Combine(ConfigStore.AppDataDir, "saved-services.json").Replace("'", "''");
 
-        if (string.IsNullOrEmpty(script)) { Log("Нет мешающих программ."); return; }
-        RunPowerShell(script);
-        Log("Мешающие программы отключены.");
+            var names = "@(" + string.Join(",", current.interferingServices.Select(s => "'" + s.Replace("'", "''") + "'")) + ")";
+            var kw = current.interferingKeywords.Concat(DefaultKeywords).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+            var re = "(?i)(" + string.Join("|", kw.Select(Regex.Escape)) + ")";
+
+            var script = "";
+            script += "$svc = Get-Service | Where-Object { ($_.Name -in " + names + ") -or ($_.Name -match '" + re + "') -or ($_.DisplayName -match '" + re + "') };";
+            // сохранить исходное состояние (тип запуска + был ли запущен), чтобы потом корректно восстановить
+            script += "if ($svc) { $svc | ForEach-Object { [PSCustomObject]@{ Name=$_.Name; StartType=$_.StartType.ToString(); Running=($_.Status -eq 'Running') } } | ConvertTo-Json | Set-Content -Path '" + savedPath + "' -Encoding UTF8 -ErrorAction SilentlyContinue };";
+            script += "$svc | ForEach-Object { Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue; Set-Service -Name $_.Name -StartupType Disabled -ErrorAction SilentlyContinue };";
+            foreach (var p in current.interferingProcesses)
+                script += "Stop-Process -Name '" + p.Replace("'", "''") + "' -Force -ErrorAction SilentlyContinue;";
+            script += "Get-Process | Where-Object { $_.ProcessName -match '" + re + "' } | Stop-Process -Force -ErrorAction SilentlyContinue;";
+
+            RunPowerShellSync(script);
+            Log("Мешающие программы отключены.");
+        }
+        catch (Exception ex) { Log("Ошибка: " + ex.Message); }
     }
 
     void RestoreInterfering()
     {
-        if (current.interferingServices.Count == 0) return;
-        var script = "";
-        foreach (var s in current.interferingServices)
-            script += "Set-Service -Name '" + s + "' -StartupType Automatic -ErrorAction SilentlyContinue;Start-Service -Name '" + s + "' -ErrorAction SilentlyContinue;";
-        RunPowerShell(script);
-        Log("Мешающие программы возвращены.");
+        try
+        {
+            var savedPath = System.IO.Path.Combine(ConfigStore.AppDataDir, "saved-services.json").Replace("'", "''");
+
+            var script = "";
+            script += "if (Test-Path '" + savedPath + "') { ";
+            script += "$saved = Get-Content '" + savedPath + "' -Raw | ConvertFrom-Json; ";
+            script += "foreach ($s in @($saved)) { Set-Service -Name $s.Name -StartupType $s.StartType -ErrorAction SilentlyContinue; if ($s.Running) { Start-Service -Name $s.Name -ErrorAction SilentlyContinue } }; ";
+            script += "Remove-Item '" + savedPath + "' -Force -ErrorAction SilentlyContinue; ";
+            script += "}";
+
+            RunPowerShellSync(script);
+            Log("Мешающие программы возвращены.");
+        }
+        catch (Exception ex) { Log("Ошибка: " + ex.Message); }
     }
 
     async Task FixRoutingAsync()
