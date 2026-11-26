@@ -64,6 +64,9 @@ static class Lang
         ["yes"] = ("Да", "Yes"),
         ["no"] = ("Нет", "No"),
         ["vpn_dropped_confirm"] = ("Вы отключили VPN?", "Did you disconnect the VPN?"),
+        ["sound"] = ("Звук", "Sound"),
+        ["autostart"] = ("Автозапуск с Windows", "Start with Windows"),
+        ["start_in_tray"] = ("Сворачивать в трей при запуске", "Start minimized to tray"),
     };
 
     public static bool English => Prefs.Get("Lang");

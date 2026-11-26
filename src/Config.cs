@@ -146,3 +146,38 @@ public static class ConfigStore
         return up.Name;
     }
 }
+
+// ---------- автозапуск с Windows (реестр Run) ----------
+static class Autostart
+{
+    const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+    public static bool IsEnabled()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
+            return key?.GetValue("Pconnect") != null;
+        }
+        catch { return false; }
+    }
+
+    public static void SetEnabled(bool enabled)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath);
+            if (enabled)
+            {
+                var exe = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(exe))
+                    key.SetValue("Pconnect", "\"" + exe + "\"");
+            }
+            else
+            {
+                key.DeleteValue("Pconnect", false);
+            }
+        }
+        catch { }
+    }
+}

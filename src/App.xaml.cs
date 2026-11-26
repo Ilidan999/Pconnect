@@ -26,7 +26,14 @@ public partial class App : Application
         var splash = BuildSplash();
         splash.Show();
         var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
-        t.Tick += (s, ev) => { t.Stop(); new MainWindow().Show(); splash.Close(); };
+        t.Tick += (s, ev) =>
+        {
+            t.Stop();
+            var main = new MainWindow();
+            main.Show();
+            if (Prefs.Get("StartInTray")) main.Hide();
+            splash.Close();
+        };
         t.Start();
     }
 

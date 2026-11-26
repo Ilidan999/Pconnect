@@ -28,6 +28,7 @@ static class Ui
     // ---------- звуки (генерируются локально) ----------
     public static void PlaySound(bool connected)
     {
+        if (Prefs.Get("MuteSound")) return;
         try
         {
             var freqs = connected ? new double[] { 659.25, 783.99, 1046.5 } : new double[] { 783.99, 523.25 };
@@ -129,6 +130,7 @@ static class Ui
     // ---------- короткий собственный звук уведомления ----------
     public static void PlayNotify()
     {
+        if (Prefs.Get("MuteSound")) return;
         try
         {
             var bytes = BuildWav(new double[] { 880.0, 1174.66 }, 0.12, 0.22);
@@ -142,6 +144,7 @@ static class Ui
     // ---------- короткий «клик» для переключателей ----------
     public static void PlayClick()
     {
+        if (Prefs.Get("MuteSound")) return;
         try
         {
             var bytes = BuildWav(new double[] { 660.0 }, 0.05, 0.18);

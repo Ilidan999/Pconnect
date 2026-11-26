@@ -40,6 +40,9 @@ public partial class SettingsWindow : Window
         ImportBtn.Click += (s, e) => ImportConfig();
         FFixRouting.Click += (s, e) => Ui.PlayClick();
         FKillSwitch.Click += (s, e) => Ui.PlayClick();
+        FSound.Click += (s, e) => { Prefs.Set("MuteSound", FSound.IsChecked != true); Ui.PlayClick(); };
+        FAutostart.Click += (s, e) => { Autostart.SetEnabled(FAutostart.IsChecked == true); Ui.PlayClick(); };
+        FStartInTray.Click += (s, e) => { Prefs.Set("StartInTray", FStartInTray.IsChecked == true); Ui.PlayClick(); };
         RbRu.Checked += (s, e) => SetLanguage(false);
         RbEn.Checked += (s, e) => SetLanguage(true);
         PreviewMouseLeftButtonDown += OnDrag;
@@ -51,6 +54,9 @@ public partial class SettingsWindow : Window
         config = ConfigStore.Load();
         profiles = config.profiles ?? new List<Profile>();
         FKillSwitch.IsChecked = Prefs.Get("KillSwitch");
+        FSound.IsChecked = !Prefs.Get("MuteSound");
+        FAutostart.IsChecked = Autostart.IsEnabled();
+        FStartInTray.IsChecked = Prefs.Get("StartInTray");
         RbRu.IsChecked = !Lang.English;
         RbEn.IsChecked = Lang.English;
         ApplyLang();
@@ -82,6 +88,9 @@ public partial class SettingsWindow : Window
         ProcessesLabel.Text = Lang.T("processes");
         FFixRouting.Content = Lang.T("fix_routing");
         FKillSwitch.Content = Lang.T("kill_switch");
+        FSound.Content = Lang.T("sound");
+        FAutostart.Content = Lang.T("autostart");
+        FStartInTray.Content = Lang.T("start_in_tray");
         AddBtn.Content = Lang.T("add");
         DetectBtn.Content = Lang.T("detect");
         DetectClientBtn.Content = Lang.T("detect");
