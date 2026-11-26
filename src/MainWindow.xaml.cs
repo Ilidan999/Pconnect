@@ -421,6 +421,26 @@ public partial class MainWindow : Window
         catch { }
     }
 
+    // Синхронный запуск PowerShell с ожиданием завершения и выводом ошибки в журнал
+    void RunPowerShellSync(string script)
+    {
+        try
+        {
+            using var p = Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -Command \"" + script + "\"")
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardError = true
+            });
+            if (p == null) return;
+            string err = p.StandardError.ReadToEnd();
+            p.WaitForExit(10000);
+            if (!string.IsNullOrWhiteSpace(err))
+                Log("Ошибка команды: " + err.Trim());
+        }
+        catch { }
+    }
+
     void StopInterfering()
     {
         var script = "";
@@ -456,11 +476,13 @@ public partial class MainWindow : Window
         Log("Мешающие программы возвращены.");
     }
 
-    void FixRouting()
+    async Task FixRoutingAsync()
     {
         try
         {
-            RunPowerShell("Set-NetIPInterface -InterfaceAlias '" + current.adapter + "' -AddressFamily IPv4 -IgnoreDefaultRoutes Disabled");
+            // небольшая пауза: дать TUN-адаптеру полностью подняться и создать маршруты
+            await Task.Delay(1500);
+            RunPowerShellSync("Set-NetIPInterface -InterfaceAlias '" + current.adapter + "' -AddressFamily IPv4 -IgnoreDefaultRoutes Disabled");
             Log("Маршрутизация включена.");
         }
         catch (Exception ex) { Log("Не удалось настроить маршрут: " + ex.Message); }
@@ -718,7 +740,7 @@ public partial class MainWindow : Window
                 }
                 Log("Туннель «" + current.adapter + "» поднят.");
                 HideClientWindow();
-                if (current.fixRouting) FixRouting();
+                if (current.fixRouting) await FixRoutingAsync();
             }
             else
             {
@@ -737,7 +759,7 @@ public partial class MainWindow : Window
                     current.adapter = detected;
                     try { ConfigStore.Save(config); } catch { }
                     Log("Адаптер определён: " + detected);
-                    if (current.fixRouting) FixRouting();
+                    if (current.fixRouting) await FixRoutingAsync();
                 }
             }
 
