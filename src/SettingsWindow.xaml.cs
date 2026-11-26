@@ -77,6 +77,7 @@ public partial class SettingsWindow : Window
         SecConnection.Text = Lang.T("sec_connection");
         SecExtra.Text = Lang.T("sec_extra");
         SecData.Text = Lang.T("sec_data");
+        SecGeneral.Text = Lang.T("general");
         ExportBtn.Content = Lang.T("export");
         ImportBtn.Content = Lang.T("import");
         NameLabel.Text = Lang.T("name");

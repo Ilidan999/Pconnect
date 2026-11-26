@@ -69,6 +69,7 @@ static class Lang
         ["autostart"] = ("Автозапуск с Windows", "Start with Windows"),
         ["start_in_tray"] = ("Сворачивать в трей при запуске", "Start minimized to tray"),
         ["clear_log"] = ("Очистить", "Clear"),
+        ["general"] = ("ОБЩИЕ", "GENERAL"),
         ["update_now"] = ("Обновить сейчас?", "Update now?"),
         ["downloading_update"] = ("Скачивание обновления...", "Downloading update..."),
         ["update_download_failed"] = ("Не удалось скачать обновление.", "Failed to download the update."),
