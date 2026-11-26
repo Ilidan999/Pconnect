@@ -776,6 +776,7 @@ public partial class MainWindow : Window
     {
         if (current == null) return;
         PowerBtn.IsEnabled = false;
+        stateOn = false;
         var beforeIp = CurrentIpText();
         try
         {
@@ -848,6 +849,7 @@ public partial class MainWindow : Window
     {
         if (current == null) return;
         PowerBtn.IsEnabled = false;
+        stateOn = false; // чтобы kill switch не срабатывал во время отключения
         try
         {
             Log("================ ОСТАНОВКА VPN ================");
