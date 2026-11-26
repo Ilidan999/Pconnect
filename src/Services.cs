@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -68,6 +69,9 @@ static class Lang
         ["autostart"] = ("Автозапуск с Windows", "Start with Windows"),
         ["start_in_tray"] = ("Сворачивать в трей при запуске", "Start minimized to tray"),
         ["clear_log"] = ("Очистить", "Clear"),
+        ["update_now"] = ("Обновить сейчас?", "Update now?"),
+        ["downloading_update"] = ("Скачивание обновления...", "Downloading update..."),
+        ["update_download_failed"] = ("Не удалось скачать обновление.", "Failed to download the update."),
     };
 
     public static bool English => Prefs.Get("Lang");
@@ -83,9 +87,16 @@ static class UpdateChecker
     {
         public string tag_name { get; set; }
         public string html_url { get; set; }
+        public List<Asset> assets { get; set; }
     }
 
-    public static async Task<(string version, string url)> CheckAsync(string repo, string currentVersion)
+    class Asset
+    {
+        public string name { get; set; }
+        public string browser_download_url { get; set; }
+    }
+
+    public static async Task<(string version, string downloadUrl)> CheckAsync(string repo, string currentVersion)
     {
         if (string.IsNullOrWhiteSpace(repo)) return default;
         try
@@ -95,8 +106,16 @@ static class UpdateChecker
             var json = await hc.GetStringAsync($"https://api.github.com/repos/{repo}/releases/latest");
             var rel = JsonSerializer.Deserialize<ReleaseInfo>(json);
             if (rel == null || string.IsNullOrEmpty(rel.tag_name)) return default;
-            if (IsNewer(rel.tag_name, currentVersion)) return (rel.tag_name, rel.html_url);
-            return default;
+            if (!IsNewer(rel.tag_name, currentVersion)) return default;
+
+            // ссылка на установщик среди файлов релиза (fallback — страница релиза)
+            var url = rel.html_url;
+            var installer = rel.assets?.FirstOrDefault(a =>
+                a.name != null && a.name.StartsWith("Pconnect-Setup-") && a.name.EndsWith(".exe"));
+            if (installer != null && !string.IsNullOrEmpty(installer.browser_download_url))
+                url = installer.browser_download_url;
+
+            return (rel.tag_name, url);
         }
         catch { return default; }
     }

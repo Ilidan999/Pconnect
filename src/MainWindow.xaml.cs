@@ -188,18 +188,48 @@ public partial class MainWindow : Window
     {
         var ver = typeof(App).Assembly.GetName().Version.ToString(3);
         var res = await UpdateChecker.CheckAsync(repo, ver);
-        if (res.version != null)
+        if (res.version == null) return;
+
+        // спросить, обновить ли сейчас
+        bool update = Ui.ShowConfirm(this, Lang.T("update_available") + ": v" + res.version + ". " + Lang.T("update_now"), "Pconnect");
+        if (!update) return;
+
+        Ui.ShowToast("Pconnect", Lang.T("downloading_update"), "#8B5CF6");
+        var installer = await DownloadInstallerAsync(res.downloadUrl);
+        if (installer == null)
         {
-            Dispatcher.Invoke(() =>
-            {
-                Log(Lang.T("update_available") + ": " + res.version + " — " + res.url);
-                Ui.ShowToast("Pconnect", Lang.T("update_available") + ": " + res.version, "#8B5CF6");
-                if (!string.IsNullOrEmpty(res.url))
-                {
-                    try { Process.Start(new ProcessStartInfo(res.url) { UseShellExecute = true }); }
-                    catch { }
-                }
-            });
+            Log(Lang.T("update_download_failed"));
+            Ui.ShowMessage(this, Lang.T("update_download_failed"), warning: true);
+            return;
+        }
+
+        Log("Запуск установщика обновления...");
+        try
+        {
+            Process.Start(new ProcessStartInfo(installer, "/SILENT /NORESTART /CLOSEAPPLICATIONS") { UseShellExecute = true });
+        }
+        catch { }
+        if (tray != null) { tray.Visible = false; tray.Dispose(); }
+        Application.Current.Shutdown();
+    }
+
+    async System.Threading.Tasks.Task<string> DownloadInstallerAsync(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+        try
+        {
+            var tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Pconnect-Update-" + Guid.NewGuid().ToString("N") + ".exe");
+            Log("Скачивание обновления...");
+            using var hc = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+            hc.DefaultRequestHeaders.UserAgent.ParseAdd("Pconnect");
+            var bytes = await hc.GetByteArrayAsync(url);
+            await System.IO.File.WriteAllBytesAsync(tmp, bytes);
+            Log("Обновление скачано.");
+            return tmp;
+        }
+        catch
+        {
+            return null;
         }
     }
 
