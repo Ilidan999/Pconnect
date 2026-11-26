@@ -202,4 +202,54 @@ static class Ui
         }
         catch { }
     }
+
+    // ---------- подтверждение (Да/Нет) ----------
+    public static bool ShowConfirm(Window owner, string message, string title = "Pconnect")
+    {
+        PlayNotify();
+        bool result = false;
+        try
+        {
+            var titleTb = new TextBlock { Text = title, FontSize = 14, FontWeight = FontWeights.Bold, Foreground = MakeBrush("#F4F5F9") };
+            var msgTb = new TextBlock { Text = message, FontSize = 12.5, Foreground = MakeBrush("#A5ABC0"), TextWrapping = TextWrapping.Wrap, MaxWidth = 330, Margin = new Thickness(0, 8, 0, 0) };
+
+            var noBtn = new Button
+            {
+                Content = Lang.T("no"), Width = 92, Height = 34, Margin = new Thickness(0, 18, 10, 0),
+                Foreground = Brushes.White, FontWeight = FontWeights.Bold, BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Template = MakeButtonTemplate(Color.FromRgb(0x3A, 0x3F, 0x54))
+            };
+            var yesBtn = new Button
+            {
+                Content = Lang.T("yes"), Width = 92, Height = 34, Margin = new Thickness(0, 18, 0, 0),
+                Foreground = Brushes.White, FontWeight = FontWeights.Bold, BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Template = MakeButtonTemplate(Color.FromRgb(0x22, 0xC5, 0x5E))
+            };
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            buttons.Children.Add(noBtn);
+            buttons.Children.Add(yesBtn);
+
+            var stack = new StackPanel { Margin = new Thickness(22, 18, 22, 18) };
+            stack.Children.Add(titleTb);
+            stack.Children.Add(msgTb);
+            stack.Children.Add(buttons);
+
+            var border = new Border { CornerRadius = new CornerRadius(14), Background = MakeBrush("#1E2029"), BorderBrush = MakeBrush("#2E3245"), BorderThickness = new Thickness(1), Child = stack };
+            var w = new Window
+            {
+                Width = 380, SizeToContent = SizeToContent.Height, WindowStyle = WindowStyle.None,
+                AllowsTransparency = true, Background = Brushes.Transparent,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, Topmost = true, Content = border
+            };
+            if (owner != null) w.Owner = owner;
+            yesBtn.Click += (s, e) => { result = true; w.Close(); };
+            noBtn.Click += (s, e) => { result = false; w.Close(); };
+            w.ShowDialog();
+        }
+        catch { }
+        return result;
+    }
 }

@@ -314,13 +314,32 @@ public partial class MainWindow : Window
         {
             if (Prefs.Get("KillSwitch") && stateOn && current != null && (!TunnelUp() || !ClientRunning()))
             {
-                Log("Обнаружен обрыв VPN — переподключаю…");
                 stateOn = false;
-                Ui.ShowToast("Pconnect", "VPN разорван — переподключение…", "#DC2626");
-                Dispatcher.BeginInvoke(new Action(Connect));
+                HandleVpnDrop();
             }
         };
         guard.Start();
+    }
+
+    void HandleVpnDrop()
+    {
+        bool userDisconnected = Ui.ShowConfirm(this, Lang.T("vpn_dropped_confirm"), "Pconnect");
+        if (userDisconnected)
+        {
+            // пользователь отключил VPN сам — просто очистить состояние
+            Log("VPN отключён пользователем.");
+            RestoreInterfering();
+            connectedAt = null;
+            TimerText.Text = "";
+            UpdateStatus();
+            RefreshIp();
+        }
+        else
+        {
+            // обрыв — переподключить
+            Log("Обнаружен обрыв VPN — переподключаю…");
+            Connect();
+        }
     }
 
     void RegisterGlobalHotkey()
@@ -685,7 +704,7 @@ public partial class MainWindow : Window
                 }
 
                 foreach (var p in procs) { try { p.Kill(); } catch { } }
-                await Task.Delay(300); // дать процессу полностью завершиться
+                await Task.Delay(1000); // дать процессу полностью завершиться
 
                 foreach (var exe in exePaths)
                 {
@@ -829,6 +848,7 @@ public partial class MainWindow : Window
             RefreshIp(beforeIp);
             connectedAt = DateTime.Now;
             await WaitForIpChangeAsync(beforeIp); // дождаться, пока VPN-маршрут реально активируется
+            RunPowerShellSync("ipconfig /flushdns"); // сбросить DNS-кэш
             await RestartBrowsersAsync();
             Ui.PlaySound(true);
             Ui.ShowToast("Pconnect", Lang.T("connected_toast"), "#22C55E");

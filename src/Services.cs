@@ -61,6 +61,9 @@ static class Lang
         ["imported"] = ("Настройки импортированы.", "Settings imported."),
         ["import_error"] = ("Не удалось импортировать файл настроек.", "Failed to import the settings file."),
         ["client_not_found"] = ("VPN-клиент не найден.", "VPN client not found."),
+        ["yes"] = ("Да", "Yes"),
+        ["no"] = ("Нет", "No"),
+        ["vpn_dropped_confirm"] = ("Вы отключили VPN?", "Did you disconnect the VPN?"),
     };
 
     public static bool English => Prefs.Get("Lang");
