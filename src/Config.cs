@@ -171,7 +171,7 @@ static class Autostart
             {
                 var exe = Environment.ProcessPath;
                 if (!string.IsNullOrEmpty(exe))
-                    key.SetValue("Pconnect", "\"" + exe + "\"");
+                    key.SetValue("Pconnect", "\"" + exe + "\" --autostart");
             }
             else
             {

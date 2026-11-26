@@ -23,6 +23,7 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
+        bool isAutostart = e.Args.Contains("--autostart");
         var splash = BuildSplash();
         splash.Show();
         var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
@@ -31,7 +32,7 @@ public partial class App : Application
             t.Stop();
             var main = new MainWindow();
             main.Show();
-            if (Prefs.Get("StartInTray")) main.Hide();
+            if (Prefs.Get("StartInTray") && isAutostart) main.Hide();
             splash.Close();
         };
         t.Start();
