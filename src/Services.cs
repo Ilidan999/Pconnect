@@ -69,6 +69,8 @@ static class Lang
         ["autostart"] = ("Автозапуск с Windows", "Start with Windows"),
         ["start_in_tray"] = ("Сворачивать в трей при запуске", "Start minimized to tray"),
         ["clear_log"] = ("Очистить", "Clear"),
+        ["copy_log"] = ("Копировать", "Copy"),
+        ["copied"] = ("Скопировано в буфер обмена", "Copied to clipboard"),
         ["general"] = ("ОБЩИЕ", "GENERAL"),
         ["update_now"] = ("Обновить сейчас?", "Update now?"),
         ["downloading_update"] = ("Скачивание обновления...", "Downloading update..."),

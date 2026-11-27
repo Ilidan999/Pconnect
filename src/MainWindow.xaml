@@ -175,7 +175,10 @@
                 <Ellipse Width="10" Height="10" Fill="#28C840" Margin="0,0,10,0"/>
                 <TextBlock x:Name="LogCaption" Text="Журнал" FontSize="11" Foreground="#8B91A5" VerticalAlignment="Center"/>
               </StackPanel>
-              <Button x:Name="ClearLogBtn" Content="Очистить" Grid.Column="1" FontSize="11" Foreground="#8B91A5" Background="#00FFFFFF" BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"/>
+              <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="CopyLogBtn" Content="Копировать" FontSize="11" Foreground="#8B91A5" Background="#00FFFFFF" BorderThickness="0" Cursor="Hand" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <Button x:Name="ClearLogBtn" Content="Очистить" FontSize="11" Foreground="#8B91A5" Background="#00FFFFFF" BorderThickness="0" Cursor="Hand" VerticalAlignment="Center"/>
+              </StackPanel>
             </Grid>
             <RichTextBox x:Name="LogBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#B8C0CC" FontFamily="Consolas" FontSize="11" VerticalScrollBarVisibility="Auto" Margin="12,0,12,10" Padding="0">
               <FlowDocument PagePadding="0"/>

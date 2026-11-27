@@ -83,7 +83,8 @@ public partial class MainWindow : Window
         HappBtn.Click += (s, e) => OpenClient();
         IpBtn.Click += (s, e) => RefreshIp();
         LogBtn.Click += (s, e) => ToggleLog();
-        ClearLogBtn.Click += (s, e) => LogBox.Document.Blocks.Clear();
+        ClearLogBtn.Click += (s, e) => { LogBox.Document.Blocks.Clear(); try { System.IO.File.WriteAllText(ConfigStore.AppDataDir + "\\journal.log", ""); } catch { } };
+        CopyLogBtn.Click += (s, e) => CopyLog();
         SettingsBtn.Click += (s, e) => OpenSettings();
         MinBtn.Click += (s, e) => Hide();
         CloseBtn.Click += (s, e) => Hide();
@@ -170,6 +171,7 @@ public partial class MainWindow : Window
         HintText.Text = Lang.T("hint");
         LogCaption.Text = Lang.T("log");
         ClearLogBtn.Content = Lang.T("clear_log");
+        CopyLogBtn.Content = Lang.T("copy_log");
         HappBtn.Content = Lang.T("open_vpn");
         IpBtn.Content = Lang.T("check_ip");
         LogBtn.Content = Lang.T("log") + (logExpanded ? "  ▴" : "  ▾");
@@ -446,15 +448,29 @@ public partial class MainWindow : Window
     {
         try
         {
+            var line = DateTime.Now.ToString("dd.MM HH:mm:ss") + "  " + msg;
             var para = new Paragraph { Margin = new Thickness(0) };
-            para.Inlines.Add(new Run(DateTime.Now.ToString("dd.MM HH:mm:ss") + "  " + msg) { Foreground = new SolidColorBrush(LogColor(msg)) });
+            para.Inlines.Add(new Run(line) { Foreground = new SolidColorBrush(LogColor(msg)) });
             LogBox.Document.Blocks.Add(para);
             while (LogBox.Document.Blocks.Count > 500)
                 LogBox.Document.Blocks.Remove(LogBox.Document.Blocks.FirstBlock);
             LogBox.ScrollToEnd();
             DoEvents();
+            // дублируем журнал в файл для диагностики
+            try { System.IO.File.AppendAllText(ConfigStore.AppDataDir + "\\journal.log", line + Environment.NewLine); } catch { }
         }
         catch { }
+    }
+
+    void CopyLog()
+    {
+        try
+        {
+            var range = new TextRange(LogBox.Document.ContentStart, LogBox.Document.ContentEnd);
+            Clipboard.SetText(range.Text);
+            Ui.ShowToast("Pconnect", Lang.T("copied"), "#22C55E");
+        }
+        catch (Exception ex) { Log("Ошибка: " + ex.Message); }
     }
 
     static Color LogColor(string msg)
@@ -591,7 +607,7 @@ public partial class MainWindow : Window
             script += "$psi.UseShellExecute = $false; ";
             script += "[System.Diagnostics.Process]::Start($psi) | Out-Null; ";
             script += "} }; ";
-            script += "} }; ";
+            script += "}; ";
             script += "Remove-Item '" + savedProcsPath + "' -Force -ErrorAction SilentlyContinue; ";
             script += "}";
 
