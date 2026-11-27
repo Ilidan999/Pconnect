@@ -546,7 +546,7 @@ public partial class MainWindow : Window
             var script = "";
             script += "$svc = Get-Service | Where-Object { ($_.Name -in " + names + ") -or ($_.Name -match '" + re + "') -or ($_.DisplayName -match '" + re + "') };";
             // сохранить исходное состояние (тип запуска + был ли запущен), чтобы потом корректно восстановить
-            script += "if ($svc) { $svc | ForEach-Object { [PSCustomObject]@{ Name=$_.Name; StartType=$_.StartType.ToString(); Running=($_.Status -eq 'Running') } } | ConvertTo-Json | Set-Content -Path '" + savedPath + "' -Encoding UTF8 -ErrorAction SilentlyContinue };";
+            script += "if ($svc -and -not (Test-Path '" + savedPath + "')) { $svc | ForEach-Object { [PSCustomObject]@{ Name=$_.Name; StartType=$_.StartType.ToString(); Running=($_.Status -eq 'Running') } } | ConvertTo-Json | Set-Content -Path '" + savedPath + "' -Encoding UTF8 -ErrorAction SilentlyContinue };";
             script += "$svc | ForEach-Object { Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue; Set-Service -Name $_.Name -StartupType Disabled -ErrorAction SilentlyContinue };";
             foreach (var p in current.interferingProcesses)
                 script += "Stop-Process -Name '" + p.Replace("'", "''") + "' -Force -ErrorAction SilentlyContinue;";
@@ -879,6 +879,7 @@ public partial class MainWindow : Window
                 if (!TunnelUp())
                 {
                     Log("Не удалось подключиться — проверьте настройки профиля.");
+                    RestoreInterfering();
                     UpdateStatus();
                     return;
                 }
@@ -920,6 +921,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             Log("Ошибка подключения: " + ex.Message);
+            if (!TunnelUp()) RestoreInterfering();
             UpdateStatus();
         }
         finally
