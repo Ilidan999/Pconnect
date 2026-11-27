@@ -181,6 +181,12 @@
               </StackPanel>
             </Grid>
             <RichTextBox x:Name="LogBox" Grid.Row="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#B8C0CC" FontFamily="Consolas" FontSize="11" VerticalScrollBarVisibility="Auto" Margin="12,0,12,10" Padding="0">
+              <RichTextBox.ContextMenu>
+                <ContextMenu>
+                  <MenuItem x:Name="CtxCopy" Header="Копировать" Click="CtxCopy_Click"/>
+                  <MenuItem x:Name="CtxSelectAll" Header="Выделить всё" Click="CtxSelectAll_Click"/>
+                </ContextMenu>
+              </RichTextBox.ContextMenu>
               <FlowDocument PagePadding="0"/>
             </RichTextBox>
           </Grid>

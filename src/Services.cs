@@ -70,6 +70,7 @@ static class Lang
         ["start_in_tray"] = ("Сворачивать в трей при запуске", "Start minimized to tray"),
         ["clear_log"] = ("Очистить", "Clear"),
         ["copy_log"] = ("Копировать", "Copy"),
+        ["select_all"] = ("Выделить всё", "Select all"),
         ["copied"] = ("Скопировано в буфер обмена", "Copied to clipboard"),
         ["general"] = ("ОБЩИЕ", "GENERAL"),
         ["update_now"] = ("Обновить сейчас?", "Update now?"),

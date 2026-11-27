@@ -172,6 +172,8 @@ public partial class MainWindow : Window
         LogCaption.Text = Lang.T("log");
         ClearLogBtn.Content = Lang.T("clear_log");
         CopyLogBtn.Content = Lang.T("copy_log");
+        CtxCopy.Header = Lang.T("copy_log");
+        CtxSelectAll.Header = Lang.T("select_all");
         HappBtn.Content = Lang.T("open_vpn");
         IpBtn.Content = Lang.T("check_ip");
         LogBtn.Content = Lang.T("log") + (logExpanded ? "  ▴" : "  ▾");
@@ -255,7 +257,7 @@ public partial class MainWindow : Window
         while (cur != null && n < 30)
         {
             var t = cur.GetType().Name;
-            if (t == "Button" || t == "TextBox" || t == "ComboBox" || t == "CheckBox" ||
+            if (t == "Button" || t == "TextBox" || t == "RichTextBox" || t == "ComboBox" || t == "CheckBox" ||
                 t == "ScrollBar" || t == "GridSplitter" || t == "Thumb" || t == "RepeatButton")
                 return true;
             if (cur is Visual) cur = VisualTreeHelper.GetParent(cur);
@@ -471,6 +473,23 @@ public partial class MainWindow : Window
             Ui.ShowToast("Pconnect", Lang.T("copied"), "#22C55E");
         }
         catch (Exception ex) { Log("Ошибка: " + ex.Message); }
+    }
+
+    void CtxCopy_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (LogBox.Selection != null && !LogBox.Selection.IsEmpty)
+                LogBox.Copy();
+            else
+                CopyLog();
+        }
+        catch (Exception ex) { Log("Ошибка: " + ex.Message); }
+    }
+
+    void CtxSelectAll_Click(object sender, RoutedEventArgs e)
+    {
+        try { LogBox.SelectAll(); } catch { }
     }
 
     static Color LogColor(string msg)
