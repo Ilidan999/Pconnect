@@ -147,17 +147,44 @@ public static class ConfigStore
     }
 }
 
-// ---------- автозапуск с Windows (реестр Run) ----------
+// ---------- автозапуск с Windows ----------
+// Через Планировщик задач с «выполнять с наивысшими правами»: программа запускается
+// при входе в систему с правами администратора БЕЗ запроса UAC.
+// (реестр Run так не умеет — для программы с requireAdministrator он не срабатывает.)
 static class Autostart
 {
-    const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    const string TaskName = "Pconnect";
+
+    static void RunPowerShell(string script)
+    {
+        try
+        {
+            using var p = Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -Command \"" + script + "\"")
+            { CreateNoWindow = true, UseShellExecute = false });
+            p?.WaitForExit(10000);
+        }
+        catch { }
+    }
+
+    static void DeleteRunKey()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+            key?.DeleteValue("Pconnect", false);
+        }
+        catch { }
+    }
 
     public static bool IsEnabled()
     {
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
-            return key?.GetValue("Pconnect") != null;
+            using var p = Process.Start(new ProcessStartInfo("schtasks.exe", "/Query /TN \"" + TaskName + "\"")
+            { CreateNoWindow = true, UseShellExecute = false });
+            if (p == null) return false;
+            p.WaitForExit(3000);
+            return p.ExitCode == 0;
         }
         catch { return false; }
     }
@@ -166,16 +193,22 @@ static class Autostart
     {
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath);
+            DeleteRunKey(); // убрать старый способ, если остался
             if (enabled)
             {
                 var exe = Environment.ProcessPath;
-                if (!string.IsNullOrEmpty(exe))
-                    key.SetValue("Pconnect", "\"" + exe + "\" --autostart");
+                if (string.IsNullOrEmpty(exe)) return;
+                exe = exe.Replace("'", "''");
+                var script = "$exe='" + exe + "';" +
+                    "$a=New-ScheduledTaskAction -Execute $exe -Argument '--autostart';" +
+                    "$t=New-ScheduledTaskTrigger -AtLogOn;" +
+                    "$p=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest;" +
+                    "Register-ScheduledTask -TaskName '" + TaskName + "' -Action $a -Trigger $t -Principal $p -Force";
+                RunPowerShell(script);
             }
             else
             {
-                key.DeleteValue("Pconnect", false);
+                RunPowerShell("Unregister-ScheduledTask -TaskName '" + TaskName + "' -Confirm:$false -ErrorAction SilentlyContinue");
             }
         }
         catch { }
