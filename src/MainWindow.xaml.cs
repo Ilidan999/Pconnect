@@ -582,8 +582,8 @@ public partial class MainWindow : Window
             script += "if ($p.Path -and $p.CmdLine) { ";
             script += "$exe = [string]$p.Path; $baseName = [System.IO.Path]::GetFileNameWithoutExtension($exe); ";
             script += "if (-not (Get-Process -Name $baseName -ErrorAction SilentlyContinue)) { ";
-            script += "$cmd = ([string]$p.CmdLine).Trim(); ";
-            script += "if ($cmd.StartsWith('\"' + $exe + '\"')) { $cmdArgs = $cmd.Substring($exe.Length + 2).TrimStart() } elseif ($cmd.StartsWith($exe)) { $cmdArgs = $cmd.Substring($exe.Length).TrimStart() } else { $cmdArgs = '' }; ";
+            script += "$cmd = ([string]$p.CmdLine).Trim(); $q = [char]34; ";
+            script += "if ($cmd.StartsWith($q + $exe + $q)) { $cmdArgs = $cmd.Substring($exe.Length + 2).TrimStart() } elseif ($cmd.StartsWith($exe)) { $cmdArgs = $cmd.Substring($exe.Length).TrimStart() } else { $cmdArgs = '' }; ";
             script += "$psi = New-Object System.Diagnostics.ProcessStartInfo; ";
             script += "$psi.FileName = $exe; ";
             script += "$psi.WorkingDirectory = Split-Path $exe -Parent; ";
