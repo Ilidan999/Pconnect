@@ -240,6 +240,7 @@ public partial class MainWindow : Window
     // ---------- перетаскивание ----------
     void OnDrag(object sender, MouseButtonEventArgs e)
     {
+        if (IsInsideLogBox(e)) return;
         if (HasInteractiveAncestor(e.OriginalSource)) return;
         try
         {
@@ -248,6 +249,18 @@ public partial class MainWindow : Window
             SendMessage(h, 0xA1, (IntPtr)2, IntPtr.Zero);
         }
         catch { }
+    }
+
+    bool IsInsideLogBox(MouseButtonEventArgs e)
+    {
+        try
+        {
+            if (LogBox == null || LogBox.Visibility != Visibility.Visible) return false;
+            if (LogBox.ActualWidth <= 0 || LogBox.ActualHeight <= 0) return false;
+            var p = e.GetPosition(LogBox);
+            return p.X >= 0 && p.Y >= 0 && p.X <= LogBox.ActualWidth && p.Y <= LogBox.ActualHeight;
+        }
+        catch { return false; }
     }
 
     bool HasInteractiveAncestor(object el)
