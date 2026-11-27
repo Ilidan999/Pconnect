@@ -546,8 +546,8 @@ public partial class MainWindow : Window
 
             var script = "";
             script += "$svc = Get-Service | Where-Object { ($_.Name -in " + names + ") -or ($_.Name -match '" + re + "') -or ($_.DisplayName -match '" + re + "') };";
-            // сохранить исходное состояние служб (тип запуска + был ли запущен), чтобы потом корректно восстановить
-            script += "if ($svc -and -not (Test-Path '" + savedPath + "')) { $svc | ForEach-Object { [PSCustomObject]@{ Name=$_.Name; StartType=$_.StartType.ToString(); Running=($_.Status -eq 'Running') } } | ConvertTo-Json | Set-Content -Path '" + savedPath + "' -Encoding UTF8 -ErrorAction SilentlyContinue };";
+            // сохранить исходное состояние служб (тип запуска читаем из реестра — Get-Service возвращает пустой StartType для служб с очень длинной командой запуска) + был ли запущен
+            script += "if ($svc -and -not (Test-Path '" + savedPath + "')) { $svc | ForEach-Object { $st = (Get-ItemProperty ('HKLM:\\SYSTEM\\CurrentControlSet\\Services\\' + $_.Name) -ErrorAction SilentlyContinue).Start; if ($null -eq $st) { $st = 2 }; [PSCustomObject]@{ Name=$_.Name; Start=$st; Running=($_.Status -eq 'Running') } } | ConvertTo-Json | Set-Content -Path '" + savedPath + "' -Encoding UTF8 -ErrorAction SilentlyContinue };";
             // сохранить процессы (путь + командная строка), чтобы перезапустить их после отключения VPN
             script += "if (-not (Test-Path '" + savedProcsPath + "')) { $procs = Get-CimInstance Win32_Process | Where-Object { $_.Name -match '" + re + "' }; if ($procs) { $procs | ForEach-Object { [PSCustomObject]@{ Name=$_.Name; Path=$_.ExecutablePath; CmdLine=$_.CommandLine } } | ConvertTo-Json | Set-Content -Path '" + savedProcsPath + "' -Encoding UTF8 -ErrorAction SilentlyContinue } };";
             script += "$svc | ForEach-Object { Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue; Set-Service -Name $_.Name -StartupType Disabled -ErrorAction SilentlyContinue };";
@@ -572,7 +572,7 @@ public partial class MainWindow : Window
             // восстановить службы
             script += "if (Test-Path '" + savedPath + "') { ";
             script += "$saved = Get-Content '" + savedPath + "' -Raw | ConvertFrom-Json; ";
-            script += "foreach ($s in @($saved)) { Set-Service -Name $s.Name -StartupType $s.StartType -ErrorAction SilentlyContinue; if ($s.Running) { Start-Service -Name $s.Name -ErrorAction SilentlyContinue } }; ";
+            script += "foreach ($s in @($saved)) { $st = switch ([int]$s.Start) { 2 {'Automatic'} 3 {'Manual'} 4 {'Disabled'} default {'Automatic'} }; Set-Service -Name $s.Name -StartupType $st -ErrorAction SilentlyContinue; if ($s.Running) { Start-Service -Name $s.Name -ErrorAction SilentlyContinue } }; ";
             script += "Remove-Item '" + savedPath + "' -Force -ErrorAction SilentlyContinue; ";
             script += "}";
             // перезапустить процессы с их исходной командной строкой
@@ -580,7 +580,9 @@ public partial class MainWindow : Window
             script += "$procs = Get-Content '" + savedProcsPath + "' -Raw | ConvertFrom-Json; ";
             script += "foreach ($p in @($procs)) { ";
             script += "if ($p.Path -and $p.CmdLine) { ";
-            script += "$exe = [string]$p.Path; $cmd = ([string]$p.CmdLine).Trim(); ";
+            script += "$exe = [string]$p.Path; $baseName = [System.IO.Path]::GetFileNameWithoutExtension($exe); ";
+            script += "if (-not (Get-Process -Name $baseName -ErrorAction SilentlyContinue)) { ";
+            script += "$cmd = ([string]$p.CmdLine).Trim(); ";
             script += "if ($cmd.StartsWith('\"' + $exe + '\"')) { $cmdArgs = $cmd.Substring($exe.Length + 2).TrimStart() } elseif ($cmd.StartsWith($exe)) { $cmdArgs = $cmd.Substring($exe.Length).TrimStart() } else { $cmdArgs = '' }; ";
             script += "$psi = New-Object System.Diagnostics.ProcessStartInfo; ";
             script += "$psi.FileName = $exe; ";
@@ -588,6 +590,7 @@ public partial class MainWindow : Window
             script += "$psi.Arguments = $cmdArgs; ";
             script += "$psi.UseShellExecute = $false; ";
             script += "[System.Diagnostics.Process]::Start($psi) | Out-Null; ";
+            script += "} }; ";
             script += "} }; ";
             script += "Remove-Item '" + savedProcsPath + "' -Force -ErrorAction SilentlyContinue; ";
             script += "}";
